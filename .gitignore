@@ -32,3 +32,8 @@ build/
 
 # Node (if Streamlit deps add any)
 node_modules/
+
+# Transient model caches (HuggingFace ONNX, sentence-transformers, etc.)
+# Local engine vector store stays gitignored separately above; this is for
+# tool-driven semantic-embedding caches that may be pulled at runtime.
+models/
