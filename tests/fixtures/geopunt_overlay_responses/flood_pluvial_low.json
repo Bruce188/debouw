@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "overstromingsgevoelige_gebieden_pluviaal.1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.717, 51.054]
+      },
+      "properties": {
+        "pixelvalue": "1",
+        "Klasse": "weinig",
+        "LAYER": "overstromingsgevoelige_gebieden_pluviaal"
+      }
+    }
+  ]
+}

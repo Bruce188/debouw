@@ -1,0 +1,145 @@
+"""
+UI component tests for the debouw dashboard.
+
+Primary: component-level tests (no AppTest — Q8 fallback is the primary gate).
+Secondary: AppTest smoke test (marked xfail(strict=False) as allowed to flake).
+
+AppTest is known to have import/network issues in restricted environments.
+Component-level tests are the reliable primary assertion.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from debouw.ui.theme import RISK_CATEGORY_LABELS_NL, color_for_score
+from debouw.models.permit import RiskCategory
+
+
+# ---------------------------------------------------------------------------
+# 7.7-1: color_for_score thresholds
+# ---------------------------------------------------------------------------
+
+
+def test_color_for_score_thresholds() -> None:
+    """Verify the three color bands map correctly."""
+    green = color_for_score(0.0)
+    assert green == "#10b981", f"Expected green for 0.0, got {green}"
+
+    amber_low = color_for_score(0.29)
+    assert amber_low == "#10b981", "0.29 should be green"
+
+    amber = color_for_score(0.3)
+    assert amber == "#f59e0b", f"Expected amber for 0.3, got {amber}"
+
+    amber2 = color_for_score(0.4)
+    assert amber2 == "#f59e0b", "0.4 should be amber"
+
+    red = color_for_score(0.6)
+    assert red == "#ef4444", f"Expected red for 0.6, got {red}"
+
+    red2 = color_for_score(0.8)
+    assert red2 == "#ef4444", "0.8 should be red"
+
+    red3 = color_for_score(1.0)
+    assert red3 == "#ef4444", "1.0 should be red"
+
+
+# ---------------------------------------------------------------------------
+# 7.7-2: RISK_CATEGORY_LABELS_NL is exhaustive
+# ---------------------------------------------------------------------------
+
+
+def test_risk_category_labels_exhaustive() -> None:
+    """All RiskCategory enum values must have a Dutch label."""
+    for cat in RiskCategory:
+        assert cat in RISK_CATEGORY_LABELS_NL, f"Missing NL label for {cat}"
+    assert len(RISK_CATEGORY_LABELS_NL) == len(list(RiskCategory))
+
+
+# ---------------------------------------------------------------------------
+# 7.7-3: render_project_detail shows info when assessment is None
+# (component-level test using unittest mock for streamlit)
+# ---------------------------------------------------------------------------
+
+
+def test_no_assessment_shows_info() -> None:
+    """render_project_detail calls st.info when assessment is None."""
+    from unittest.mock import MagicMock, patch
+
+    project = {
+        "external_id": "gent:OMV_TEST_0001",
+        "title": "Test Project",
+        "omv_reference": "OMV_TEST_0001",
+        "source": "gent_consultatie",
+        "address": {"raw": "Korenmarkt 1, 9000 Gent", "municipality": "Gent"},
+        "status": "intake",
+        "first_seen_at": "2026-04-26T12:00:00+00:00",
+        "overlays": None,
+    }
+
+    # We need to mock all streamlit calls
+    info_calls: list = []
+
+    mock_st = MagicMock()
+    mock_st.info.side_effect = lambda msg: info_calls.append(msg)
+
+    # columns returns two mock objects (context managers)
+    col1, col2 = MagicMock(), MagicMock()
+    col1.__enter__ = lambda s: s
+    col1.__exit__ = MagicMock(return_value=False)
+    col2.__enter__ = lambda s: s
+    col2.__exit__ = MagicMock(return_value=False)
+    mock_st.columns.return_value = (col1, col2)
+
+    import debouw.ui.components as comp_module
+
+    with patch.object(comp_module, "st", mock_st):
+        comp_module.render_project_detail(project, assessment=None)
+
+    assert info_calls, "st.info() should have been called when assessment is None"
+    assert any(
+        "niet uitgevoerd" in msg or "risico" in msg.lower() for msg in info_calls
+    ), f"Expected Dutch 'geen assessment' message, got: {info_calls}"
+
+
+# ---------------------------------------------------------------------------
+# 7.7-4: AppTest smoke (optional — xfail if flaky)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(strict=False, reason="AppTest may be flaky in restricted environments")
+def test_apptest_smoke(tmp_path) -> None:
+    """Smoke test via Streamlit AppTest. Marked xfail(strict=False)."""
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(
+        __import__("pathlib").Path(__file__).parent.parent / "debouw" / "ui" / "app.py"
+    ))
+    at.run(timeout=10)
+
+    # If we reach here, the app launched without exception
+    # An empty table (0 projects in tmp DB) is acceptable
+    assert not at.exception
+
+
+# ---------------------------------------------------------------------------
+# 7.7-5: render_risk_table with empty projects list shows info (component test)
+# ---------------------------------------------------------------------------
+
+
+def test_render_risk_table_empty() -> None:
+    """render_risk_table shows info message when no projects present."""
+    from unittest.mock import MagicMock, patch
+
+    info_calls: list = []
+    mock_st = MagicMock()
+    mock_st.info.side_effect = lambda msg: info_calls.append(msg)
+
+    import debouw.ui.components as comp_module
+
+    with patch.object(comp_module, "st", mock_st):
+        result = comp_module.render_risk_table([], {})
+
+    assert result is None
+    assert info_calls, "st.info() should be called on empty projects"

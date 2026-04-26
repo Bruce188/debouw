@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import typer
 
 from debouw.config import Settings
@@ -20,6 +22,7 @@ def status() -> None:
     typer.echo(f"throttle_nominatim_seconds: {settings.throttle_nominatim_seconds}")
     typer.echo(f"throttle_rvvb_seconds: {settings.throttle_rvvb_seconds}")
     typer.echo(f"throttle_inzageloket_seconds: {settings.throttle_inzageloket_seconds}")
+    typer.echo(f"throttle_geopunt_seconds: {settings.throttle_geopunt_seconds}")
     typer.echo(f"nominatim_user_agent: {settings.nominatim_user_agent}")
     typer.echo(f"gent_consultatie_base: {settings.gent_consultatie_base}")
     typer.echo(f"nominatim_base: {settings.nominatim_base}")
@@ -28,9 +31,18 @@ def status() -> None:
 
 
 @app.command()
-def ingest(source: str = typer.Option(..., help="Source name")) -> None:
+def ingest(
+    source: str = typer.Option("gent", help="Source name (gent)"),
+    limit: int | None = typer.Option(None, help="Max dossiers to ingest"),
+) -> None:
     """Ingest permit data from a source."""
-    typer.echo("Not yet implemented in Phase 0; see master plan § Phase 1 (Gent), Phase 4 (Inzageloket), Phase 5 (Brussels)")
+    import asyncio
+    from debouw.pipeline import run
+    result = asyncio.run(run(source=source, limit=limit))
+    typer.echo(
+        f"ingested {result.ingested} projects, {result.overlays} overlays, "
+        f"{result.assessments} assessments"
+    )
 
 
 @app.command()
@@ -46,9 +58,11 @@ def export(format: str = typer.Option("json"), output: str | None = typer.Option
 
 
 @app.command()
-def serve() -> None:
+def serve(port: int = typer.Option(8501)) -> None:
     """Launch the Streamlit dashboard."""
-    typer.echo("Not yet implemented in Phase 0; see master plan § Phase 1 (Streamlit)")
+    import os
+    app_path = Path(__file__).parent / "ui" / "app.py"
+    os.execvp("streamlit", ["streamlit", "run", str(app_path), "--server.port", str(port)])
 
 
 @app.command(name="backfill-rvvb")

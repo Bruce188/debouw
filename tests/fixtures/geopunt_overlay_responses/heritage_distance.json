@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "bes_monument.1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.7300, 51.0600]
+      },
+      "properties": {
+        "id": "5000001",
+        "naam": "Historische molen",
+        "type_naam": "beschermd monument"
+      }
+    }
+  ]
+}

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     throttle_nominatim_seconds: float = 1.0
     throttle_rvvb_seconds: float = 3.0
     throttle_inzageloket_seconds: float = 5.0
+    throttle_geopunt_seconds: float = 1.0
 
     # --- Paths (lazy-created at runtime) ---
     data_root: Path = Field(

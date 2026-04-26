@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "Signaalgebieden.1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[3.71, 51.05], [3.72, 51.05], [3.72, 51.06], [3.71, 51.06], [3.71, 51.05]]]
+      },
+      "properties": {
+        "OBJECTID": 1,
+        "NAAM": "Signaalgebied Gent-Noord",
+        "TYPE": "WVI"
+      }
+    }
+  ]
+}

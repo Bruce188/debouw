@@ -96,6 +96,8 @@ _SOURCE_THROTTLE_MAP = {
     "nominatim": "throttle_nominatim_seconds",
     "rvvb": "throttle_rvvb_seconds",
     "inzageloket": "throttle_inzageloket_seconds",
+    "geopunt": "throttle_geopunt_seconds",
+    "onroerend_erfgoed": "throttle_geopunt_seconds",
 }
 
 _SOURCE_BASE_URL_MAP = {
@@ -103,6 +105,8 @@ _SOURCE_BASE_URL_MAP = {
     "nominatim": "nominatim_base",
     "rvvb": "rvvb_base",
     "inzageloket": "inzageloket_base",
+    "geopunt": "geopunt_base",
+    "onroerend_erfgoed": "onroerend_erfgoed_base",
 }
 
 
@@ -116,8 +120,9 @@ def create_http_client(settings: Settings, *, source: str) -> ThrottledHttpClien
     base_url_attr = _SOURCE_BASE_URL_MAP.get(source, "gent_consultatie_base")
     base_url: str = getattr(settings, base_url_attr, "")
 
-    # Nominatim requires an identified User-Agent per ToS
-    user_agent = settings.nominatim_user_agent if source == "nominatim" else None
+    # Identified sources require a meaningful User-Agent per polite-scrape policy
+    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed"}
+    user_agent = settings.nominatim_user_agent if source in identified_sources else None
 
     return ThrottledHttpClient(
         base_url=base_url,

@@ -5,7 +5,7 @@ All functions take session: AsyncSession as the first parameter.
 Caller controls transaction scope — no commit() calls inside these functions.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 
 from sqlalchemy import select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -106,8 +106,18 @@ async def get_project(session: AsyncSession, external_id: str) -> PermitProject 
         "dossier_pdfs": row.dossier_pdfs or [],
         "overlays": row.overlays,
         "raw_html_path": row.raw_html_path,
-        "first_seen_at": row.first_seen_at,
-        "last_changed_at": row.last_changed_at,
+        # B1 fix: SQLite stores datetimes as naive; re-attach UTC so Pydantic
+        # validates correctly and callers get tz-aware datetimes.
+        "first_seen_at": (
+            row.first_seen_at.replace(tzinfo=timezone.utc)
+            if row.first_seen_at and row.first_seen_at.tzinfo is None
+            else row.first_seen_at
+        ),
+        "last_changed_at": (
+            row.last_changed_at.replace(tzinfo=timezone.utc)
+            if row.last_changed_at and row.last_changed_at.tzinfo is None
+            else row.last_changed_at
+        ),
         "content_hash": row.content_hash,
         "decision_regime": row.decision_regime,
     }

@@ -23,6 +23,12 @@ dependencies = [
     "typer",
     "pdfplumber",
     "lancedb",
+    "beautifulsoup4>=4.12,<5",
+    "lxml>=5.2,<6; python_version<'3.14'",
+    "streamlit>=1.40,<2",
+    "streamlit-folium>=0.20,<1",
+    "folium>=0.17,<1",
+    "geopy>=2.4,<3",
 ]
 
 [project.optional-dependencies]
@@ -32,6 +38,7 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
+    "respx",
 ]
 
 [project.scripts]
