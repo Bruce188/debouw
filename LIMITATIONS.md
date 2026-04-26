@@ -25,8 +25,8 @@ op basis van publiek toegankelijke bronnen en een regelgebaseerde engine.
 | Geopunt WMS/WFS | Fase 1 actief | Publiek overheidsplatform; geïdentificeerde UA; ≤1 req/s |
 | Nominatim (OSM) | Fase 1 actief | OSM ToS: geïdentificeerde UA vereist, 1 req/s, 30-day cache, geen autocomplete/rastergebruik |
 | Onroerend Erfgoed WFS | Fase 1 actief | Publiek overheidsplatform; geïdentificeerde UA; ≤1 req/s |
-| Inzageloket Vlaanderen | Fase 4 gepland | robots.txt is restrictief; Playwright headed browser (geen headless impersonation) |
-| RvVb rechtspraak | Fase 3 gepland | research-scrape; 1 req/3 s |
+| Inzageloket Vlaanderen | Fase 4 actief | robots.txt restrictief; Playwright headed browser; 1 req/5 s; SSRF-allowlist op bijlages |
+| RvVb rechtspraak | Fase 3 actief | research-scrape; 1 req/10 s (robots.txt Crawl-Delay) |
 | Brussels OpenPermits | Fase 5 gepland | Open API; nader te evalueren |
 
 Elke scraper gebruikt `debouw-research/0.x (contact: brucieboyy99@gmail.com)` als
@@ -148,3 +148,37 @@ Sint-Niklaas 2024, De Lijn Wondelgem 2024). De gebruiker moet **27-47
 extra cases** handmatig labelen vanuit de RvVb-korpus om de gates uit
 `insufficient_gold_set` te tillen. Kalibratiebins (10 buckets) worden wel
 gerapporteerd ongeacht N — diagnostisch nuttig vanaf de eerste run.
+
+## Inzageloket Vlaanderen — Phase 4 posture
+
+debouw scrapet `omgevingsloketinzage.omgeving.vlaanderen.be` via **Playwright
+met een echte (headed) Chromium** — niet headless. De site is beschermd door
+**Anubis** (proof-of-work anti-bot) en `robots.txt` staat enkel Googlebot/
+Bingbot expliciet toe; een echte browser is verplicht. Headless-impersonatie
+wordt geweigerd.
+
+| Beleid | Waarde |
+|---|---|
+| User-Agent | `debouw-research/0.x (contact: brucieboyy99@gmail.com)` (zelfde als alle bronnen) |
+| Throttle | 1 req / 5 s tussen `page.goto`-aanroepen (Settings.throttle_inzageloket_seconds) |
+| Browser | `chromium.launch(headless=False)` — vereist `python -m playwright install chromium` |
+| Sessions | Verse `BrowserContext` per dossier (Anubis-token-staleness vermeden) |
+| Wall-clock | ~30-90 min voor `--limit 200` op een typische dev-machine |
+
+**SSRF-bescherming:** Bijlage-URL's worden gevalideerd tegen een allowlist
+(host == `omgevingsloketinzage.omgeving.vlaanderen.be`) vóór elke download.
+Niet-toegelaten hosts worden gelogd en overgeslagen.
+
+**PDF-grootte/paginabegrenzing:** Bijlagen groter dan 50 MB of met meer dan
+1000 pagina's worden niet geëxtraheerd (gelogd als `pdf_too_large` of
+`pdf_too_many_pages`); de pipeline gaat verder zonder PDF-tekst voor het
+betreffende dossier.
+
+**GDPR posture:** Identiek aan Gent — `applicant_name` wordt nooit
+gepersisteerd. De ruwe HTML (`raw_html_path`) bevat enkel `external_id`
+en publiek toegankelijke veldwaarden.
+
+**Idempotentie:** Bij heruitvoer worden alleen nieuwe of gewijzigde
+dossiers (gewijzigde `content_hash`) opnieuw geclassificeerd. Bestaande
+dossiers worden overgeslagen — een volledige run kost dus alleen op de
+eerste keer ~30-90 min.

@@ -95,9 +95,10 @@ async def test_pipeline_run_dossiers(tmp_path: Path) -> None:
 
         result = await run("gent", limit=5)
 
-    assert result.ingested == 5
-    assert result.overlays == 5
-    assert result.assessments == 5
+    # All 5 index dossiers resolve to the same external_id (same mock detail HTML
+    # → same omv_reference). The idempotency gate deduplicates after the first
+    # upsert, so ingested ≥ 1. The pipeline must not circuit-open.
+    assert result.ingested >= 1
     assert result.circuit_open is False
 
 
@@ -175,8 +176,12 @@ async def test_pipeline_engine_determinism(tmp_path: Path) -> None:
         _all_mocks(mock, detail_html=DETAIL_WITH_ADDRESS_HTML)
         r2 = await run("gent", limit=1)
 
-    assert r1.ingested == r2.ingested
-    assert r1.assessments == r2.assessments
+    # r1 ingests 1 project; r2 finds it unchanged (same content_hash) and skips it.
+    # Both runs produce the same DB outcome — the assessment row is idempotently
+    # present after both runs. Assert run 1 produced at least 1 assessment.
+    assert r1.assessments >= 1
+    # Run 2 skips the unchanged dossier — ingested/assessments counts are 0.
+    assert r2.ingested == 0
 
     engine = create_engine(f"sqlite:///{settings.db_path}")
     with engine.connect() as conn:
@@ -276,3 +281,70 @@ async def test_pipeline_circuit_open_aborts(tmp_path: Path) -> None:
     # After 2 failures circuit opens; 3rd card hits can_execute() → False
     assert result.ingested == 0
     assert result.circuit_open is True
+
+
+# ---------------------------------------------------------------------------
+# B3: Pipeline skips unchanged dossier (content_hash idempotency gate)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_pipeline_skips_unchanged_dossier(tmp_path: Path) -> None:
+    """risk_engine.classify is called exactly once when the same dossier is run twice.
+
+    B3 — idempotency gate: second run finds matching content_hash in DB and skips
+    geocode + enrich + classify entirely.
+    """
+    import debouw.risk.engine as engine_module
+    from unittest.mock import patch as _patch, AsyncMock as _AsyncMock
+
+    settings = _settings(tmp_path)
+    _init_db(settings)
+
+    classify_call_count = 0
+
+    def _make_counting_engine(s, **kwargs):
+        eng = engine_module.RealRiskEngine(s, **kwargs)
+        original_classify = eng.classify
+
+        async def counting_classify(project):
+            nonlocal classify_call_count
+            classify_call_count += 1
+            return await original_classify(project)
+
+        eng.classify = counting_classify
+        return eng
+
+    # Run 1 — fresh DB, dossier is new → classify must be called
+    with (
+        respx.mock(assert_all_called=False) as mock,
+        _patch_settings(settings),
+        _patch("debouw.pipeline.RealRiskEngine", side_effect=_make_counting_engine),
+    ):
+        _all_mocks(mock, detail_html=DETAIL_WITH_ADDRESS_HTML)
+        from debouw.pipeline import run
+
+        r1 = await run("gent", limit=1)
+
+    assert r1.ingested == 1, f"Run 1: expected 1 ingested, got {r1.ingested}"
+    assert classify_call_count == 1, (
+        f"Run 1: expected classify called 1 time, got {classify_call_count}"
+    )
+
+    # Run 2 — same DB, same dossier (same content_hash) → classify must NOT be called
+    with (
+        respx.mock(assert_all_called=False) as mock,
+        _patch_settings(settings),
+        _patch("debouw.pipeline.RealRiskEngine", side_effect=_make_counting_engine),
+    ):
+        _all_mocks(mock, detail_html=DETAIL_WITH_ADDRESS_HTML)
+        r2 = await run("gent", limit=1)
+
+    assert r2.ingested == 0, (
+        f"Run 2: expected 0 ingested (unchanged dossier skipped), got {r2.ingested}"
+    )
+    # classify_call_count still == 1 (no additional calls in run 2)
+    assert classify_call_count == 1, (
+        f"Run 2: classify should not have been called again; "
+        f"total call count = {classify_call_count}"
+    )

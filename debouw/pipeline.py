@@ -17,9 +17,11 @@ from debouw.ingest.enrich_geopunt import enrich
 from debouw.ingest.geocode import geocode
 from debouw.ingest.sources import SchemaDriftError
 from debouw.ingest.sources.gent import GentSource
+from debouw.ingest.sources.inzageloket import InzageloketSource
 from debouw.risk.engine import RealRiskEngine
 from debouw.storage.db import make_engine, make_sessionmaker
 from debouw.storage.repository import (
+    get_project,
     get_scrape_state,
     set_scrape_state,
     upsert_assessment,
@@ -31,6 +33,7 @@ log = structlog.get_logger(__name__)
 
 _SOURCE_REGISTRY = {
     "gent": GentSource,
+    "vlaanderen_inzage": InzageloketSource,
 }
 
 
@@ -95,6 +98,22 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
                     breaker.record_failure()
                     continue
 
+                # B3: idempotency gate — skip geocode + enrich + classify when
+                # the dossier is unchanged (content_hash matches existing row).
+                async with Session() as s:
+                    async with s.begin():
+                        existing = await get_project(s, project_no_overlay.external_id)
+
+                if (
+                    existing is not None
+                    and existing.content_hash == project_no_overlay.content_hash
+                ):
+                    log.info(
+                        "pipeline_dossier_unchanged",
+                        external_id=project_no_overlay.external_id,
+                    )
+                    continue
+
                 point = await geocode(project_no_overlay.address.raw, settings)
                 overlays = await enrich(point, settings)
 
@@ -103,6 +122,12 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
                         "overlays": overlays,
                         "address": project_no_overlay.address.model_copy(
                             update={"point": point}
+                        ),
+                        # Preserve first_seen_at from the existing row to avoid clobber
+                        **(
+                            {"first_seen_at": existing.first_seen_at}
+                            if existing is not None
+                            else {}
                         ),
                     }
                 )

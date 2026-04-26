@@ -124,6 +124,51 @@ def test_apptest_smoke(tmp_path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Phase 4 — Task 6.8: gemeente multiselect filter logic tests
+# ---------------------------------------------------------------------------
+
+
+def test_gemeente_multiselect_filter_logic():
+    """Phase 4: multiselect filter on Gemeenten works set-membership-wise."""
+    projects = [
+        {"external_id": "gent:OMV_1", "address": {"municipality": "Gent"}},
+        {"external_id": "gent:OMV_2", "address": {"municipality": "GENT"}},
+        {"external_id": "vl_inz:OMV_3", "address": {"municipality": "Antwerpen"}},
+        {"external_id": "vl_inz:OMV_4", "address": {"municipality": None}},
+    ]
+    selected = ["gent"]
+    selected_lower = {g.lower() for g in selected}
+
+    def _muni(p: dict) -> str:
+        addr = p.get("address") or {}
+        if isinstance(addr, dict):
+            return (addr.get("municipality") or "").lower()
+        return ""
+
+    filtered = [p for p in projects if _muni(p) in selected_lower]
+    assert len(filtered) == 2
+    assert all(p["external_id"].startswith("gent:") for p in filtered)
+
+
+def test_gemeente_options_dedup_and_sort():
+    """The multiselect options list is deduped + sorted (case-preserved)."""
+    projects = [
+        {"address": {"municipality": "Sint-Niklaas"}},
+        {"address": {"municipality": "Antwerpen"}},
+        {"address": {"municipality": "Sint-Niklaas"}},
+        {"address": {"municipality": None}},
+        {"address": "string-not-dict"},
+    ]
+    municipalities = sorted({
+        (p.get("address") or {}).get("municipality")
+        for p in projects
+        if isinstance(p.get("address"), dict)
+        and p.get("address", {}).get("municipality")
+    })
+    assert municipalities == ["Antwerpen", "Sint-Niklaas"]
+
+
+# ---------------------------------------------------------------------------
 # 7.7-5: render_risk_table with empty projects list shows info (component test)
 # ---------------------------------------------------------------------------
 

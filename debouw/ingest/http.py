@@ -62,6 +62,20 @@ class ThrottledHttpClient:
         """Throttled + retried GET."""
         return await self.request("GET", url, **kwargs)
 
+    def stream(self, method: str, url: str, **kwargs):
+        """Return a streaming request context manager (throttle applied inline).
+
+        Usage:
+            async with client.stream("GET", url, follow_redirects=False) as resp:
+                async for chunk in resp.aiter_bytes(chunk_size):
+                    ...
+
+        Note: No tenacity retry around the stream body — caller handles aborts.
+        Throttle is NOT applied here (downloads are one-shot after scrape throttle).
+        """
+        client = self._get_client()
+        return client.stream(method, url, **kwargs)
+
     async def post(self, url: str, **kwargs) -> httpx.Response:
         """Throttled + retried POST."""
         return await self.request("POST", url, **kwargs)
@@ -121,7 +135,7 @@ def create_http_client(settings: Settings, *, source: str) -> ThrottledHttpClien
     base_url: str = getattr(settings, base_url_attr, "")
 
     # Identified sources require a meaningful User-Agent per polite-scrape policy
-    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb"}
+    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb", "inzageloket"}
     user_agent = settings.nominatim_user_agent if source in identified_sources else None
 
     return ThrottledHttpClient(

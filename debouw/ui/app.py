@@ -58,27 +58,44 @@ def main() -> None:
         f"Engine: {settings.engine_version} | Data: {settings.data_root}"
     )
 
+    # Load data
+    engine_key = str(settings.db_path)
+
     # Sidebar filters
     with st.sidebar:
-        gemeente_filter = st.text_input("Filter op gemeente", "")
+        # Build gemeente options from in-memory projects (deduped, sorted).
+        projects_for_filter = _projects(_engine_id=engine_key)
+        _municipalities_raw = {
+            (p.get("address") or {}).get("municipality")
+            for p in projects_for_filter
+            if isinstance(p.get("address"), dict)
+            and p.get("address", {}).get("municipality")
+        }
+        _municipalities: list[str] = sorted(
+            m for m in _municipalities_raw if isinstance(m, str)
+        )
+        selected_gemeenten = st.multiselect(
+            "Gemeenten", options=_municipalities, default=[],
+            help="Laat leeg om alle gemeenten te tonen",
+        )
         min_score = st.slider("Minimum risicoscore", 0.0, 1.0, 0.0, 0.05)
         if st.button("Refresh"):
             st.cache_data.clear()
             st.rerun()
 
-    # Load data
-    engine_key = str(settings.db_path)
     projects = _projects(_engine_id=engine_key)
 
     # Apply filters
-    if gemeente_filter:
+    if selected_gemeenten:
+        selected_lower = {g.lower() for g in selected_gemeenten}
+
         def _muni(p: dict) -> str:
             addr = p.get("address") or {}
             if isinstance(addr, dict):
                 return (addr.get("municipality") or "").lower()
             return ""
 
-        projects = [p for p in projects if gemeente_filter.lower() in _muni(p)]
+        projects = [p for p in projects if _muni(p) in selected_lower]
 
     project_ids = tuple(p["external_id"] for p in projects)
     assessments = _assessments(_engine_id=engine_key, _project_ids=project_ids)
