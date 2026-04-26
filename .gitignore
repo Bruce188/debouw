@@ -1,0 +1,34 @@
+# Application data — local artifacts only, regenerable
+data/raw/
+data/cache/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# LanceDB column files (engine-only writes; preserve directory but exclude segments)
+lancedb/*.lance
+lancedb/**/*.lance
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+dist/
+build/
+
+# Node (if Streamlit deps add any)
+node_modules/
