@@ -16,6 +16,7 @@ from debouw.storage.schema import (
     PermitProjectRow,
     PublicInquiryRow,
     RiskAssessmentRow,
+    RiskNarrationCacheRow,
     ScrapeStateRow,
 )
 
@@ -215,5 +216,63 @@ async def set_scrape_state(
     stmt = stmt.on_conflict_do_update(
         index_elements=["source"],
         set_={"cursor": stmt.excluded.cursor, "last_run_at": stmt.excluded.last_run_at},
+    )
+    await session.execute(stmt)
+
+
+async def get_narration_cache(
+    session: AsyncSession,
+    project_external_id: str,
+    engine_version: str,
+) -> dict | None:
+    """
+    Return the cached narration dict for (project_external_id, engine_version).
+
+    Returns a dict with keys {"rationales_json", "summary", "generated_at"} or
+    None on cache miss. Consumed by risk/cache.py::get_cached().
+    """
+    result = await session.execute(
+        select(RiskNarrationCacheRow).where(
+            RiskNarrationCacheRow.project_external_id == project_external_id,
+            RiskNarrationCacheRow.engine_version == engine_version,
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+    # Use mode="python" consistent with B1 fix — generated_at stays a datetime
+    return {
+        "rationales_json": row.rationales_json,
+        "summary": row.summary,
+        "generated_at": (
+            row.generated_at.replace(tzinfo=timezone.utc)
+            if row.generated_at and row.generated_at.tzinfo is None
+            else row.generated_at
+        ),
+    }
+
+
+async def upsert_narration_cache(
+    session: AsyncSession,
+    project_external_id: str,
+    engine_version: str,
+    rationales_json: dict,
+    summary: str,
+    generated_at: datetime,
+) -> None:
+    """Upsert a narration cache entry; composite PK (project_external_id, engine_version)."""
+    stmt = sqlite_insert(RiskNarrationCacheRow).values(
+        project_external_id=project_external_id,
+        engine_version=engine_version,
+        rationales_json=rationales_json,
+        summary=summary,
+        generated_at=generated_at,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["project_external_id", "engine_version"],
+        set_={
+            col: stmt.excluded[col]
+            for col in ["rationales_json", "summary", "generated_at"]
+        },
     )
     await session.execute(stmt)

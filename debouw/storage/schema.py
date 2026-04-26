@@ -125,3 +125,19 @@ class ScrapeStateRow(Base):
     source: Mapped[str] = mapped_column(String, primary_key=True)
     cursor: Mapped[str | None] = mapped_column(String, nullable=True)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RiskNarrationCacheRow(Base):
+    """Cache table for LLM narration keyed by (project_external_id, engine_version).
+
+    No FK on project_external_id by design: orphan cache rows survive
+    engine_version bumps and can be pruned manually (LIMITATIONS.md § Engine version policy).
+    """
+
+    __tablename__ = "risk_narration_cache"
+
+    project_external_id: Mapped[str] = mapped_column(String, primary_key=True)
+    engine_version: Mapped[str] = mapped_column(String, primary_key=True)
+    rationales_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    summary: Mapped[str] = mapped_column(String, nullable=False)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

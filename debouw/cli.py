@@ -46,9 +46,17 @@ def ingest(
 
 
 @app.command()
-def classify(project_id: str | None = typer.Option(None)) -> None:
-    """Classify risk for a permit project."""
-    typer.echo("Not yet implemented in Phase 0; see master plan § Phase 2")
+def classify(
+    project_id: str | None = typer.Option(None, help="External id; classifies all when None"),
+    reclassify_all: bool = typer.Option(False, help="Re-run even if assessment exists"),
+) -> None:
+    """Classify risk for permit projects."""
+    import asyncio
+    from debouw.risk.engine import classify_all
+    settings = Settings()
+    configure_logging(settings)
+    n = asyncio.run(classify_all(settings, project_id=project_id, force=reclassify_all))
+    typer.echo(f"classified {n} projects")
 
 
 @app.command()

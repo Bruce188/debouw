@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     # --- Engine + logging ---
-    engine_version: str = "0.1.0-stub"
+    engine_version: str = "0.2.0-rules-v1"
     log_format: Literal["json", "console"] = "console"
 
     # --- Identification (Inzageloket robots policy) ---
@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     # Set NOMINATIM_USER_AGENT in .env to supply the maintainer's actual contact address.
     # The default here is a placeholder — override it before sending real requests.
     nominatim_user_agent: str = "debouw-research/0.x (set NOMINATIM_USER_AGENT in .env)"
+
+    # --- LLM narrator settings ---
+    sonnet_model: str = "claude-sonnet-4-5-20250929"
+    openai_fallback_model: str = "gpt-4o-2024-08-06"
+    narration_cache_enabled: bool = True
+    narration_max_tokens: int = 1024
 
     # --- API keys (resolved from .env, never persisted) ---
     anthropic_api_key: str | None = None

@@ -17,7 +17,7 @@ from debouw.ingest.enrich_geopunt import enrich
 from debouw.ingest.geocode import geocode
 from debouw.ingest.sources import SchemaDriftError
 from debouw.ingest.sources.gent import GentSource
-from debouw.risk.stub import StubRiskEngine
+from debouw.risk.engine import RealRiskEngine
 from debouw.storage.db import make_engine, make_sessionmaker
 from debouw.storage.repository import (
     get_scrape_state,
@@ -57,7 +57,7 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
     engine = make_engine(settings)
     Session = make_sessionmaker(engine)
     breaker = CircuitBreaker()
-    risk_engine = StubRiskEngine(settings)
+    risk_engine = RealRiskEngine(settings, session_factory=Session)
     result = PipelineResult()
 
     try:

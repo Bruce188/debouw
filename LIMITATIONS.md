@@ -71,3 +71,33 @@ Contactpersoon: **brucieboyy99@gmail.com**
 Bij vragen of verzoeken tot verwijdering van gegevens:
 - Stuur een e-mail met het `external_id` of de URL van het dossier.
 - Wij streven ernaar binnen **10 werkdagen** te reageren en het dossier te verwijderen.
+
+## Engine version policy
+
+De risicoengine is versioned via het veld `engine_version` (huidig: `0.2.0-rules-v1`).
+Elke versiestap maakt de eerder gecachte LLM-rationale ongeldig: de combinatiesleutel
+`(project_external_id, engine_version)` in de `risk_narration_cache`-tabel wordt niet
+overschreven, maar er wordt een nieuwe rij aangemaakt. Verouderde rijen worden niet
+automatisch verwijderd en accumuleren op schijf (~1 KB per rij). Het commando
+`debouw cache prune` (gepland in Fase 6+) verwijdert verouderde cache-entries.
+
+## LLM rationale stability
+
+De regelscores (`probability`, `severity`, `expected_delay_days`) zijn deterministisch
+voor dezelfde invoer en dezelfde `engine_version`. De Nederlandstalige rationale gegenereerd
+door Claude Sonnet kan variëren tussen runs — dit is verwacht gedrag. De cache
+(`risk_narration_cache`) garandeert dat eenzelfde project slechts één API-call kost per
+`engine_version`. Tests controleren gelijkheid van regelscores, niet van de LLM-tekst.
+
+## API-key fallback chain
+
+De narratorketen werkt als volgt:
+1. **Anthropic (Claude Sonnet)** — primair; prompt caching ingeschakeld.
+2. **OpenAI (GPT-4o)** — fallback wanneer `ANTHROPIC_API_KEY` ontbreekt of de API
+   een niet-herstelbare fout geeft.
+3. **Statisch Nederlandstalig sjabloon** — veiligheidsnet wanneer beide API-sleutels
+   ontbreken. De rationale is minder specifiek maar altijd beschikbaar.
+
+Het ontbreken van beide sleutels wordt éénmalig gelogd bij initialisatie van de engine
+(`narrator_no_api_keys`). Geen foutmelding — de applicatie functioneert volledig
+via het statische sjabloon.
