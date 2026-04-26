@@ -7,16 +7,33 @@ All functions are pure (no network, no DB). Determinism is guaranteed by:
 - tiebreak on category.value (alphabetic) in top_k
 """
 
+from __future__ import annotations
+
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from debouw.models.permit import GeoOverlays, PermitProject, RiskCategory
 from debouw.risk.features import FeatureSet
 from debouw.risk.taxonomy import RiskCategoryDef
 
-# Precedent modifier weight — Phase 2 wires no precedent corpus so α=0.
-ALPHA: float = 0.0
+if TYPE_CHECKING:
+    from debouw.risk.precedents import PrecedentHit
+
+# Precedent modifier weight — Phase 3: α=0.4.
+# Phase 2 regression: empty hits → precedent_modifier=1.0 → score byte-identical.
+ALPHA: float = 0.4
+
+# Outcome weights for precedent_modifier calculation
+_OUTCOME_WEIGHT: dict[str, float] = {
+    "vernietigd":     +1.0,
+    "gedeeltelijk":   +0.5,
+    "verworpen":      -1.0,
+    "onontvankelijk":  0.0,
+    "afstand":         0.0,
+    "andere":          0.0,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +94,34 @@ def _confidence(
 
 
 # ---------------------------------------------------------------------------
+# Precedent modifier
+# ---------------------------------------------------------------------------
+
+def precedent_modifier(hits: list["PrecedentHit"]) -> float:
+    """
+    Outcome-weighted similarity → modifier in [0.6, 1.4]. Empty hits → 1.0.
+
+    Formula (plan-v4 § 3.1):
+        weighted_score = Σ(similarity_i × weight_i) / Σ(|weight_i| × similarity_i)
+        modifier = clip(1.0 + ALPHA × weighted_score, 0.6, 1.4)
+
+    Phase 2 regression contract: empty hits → modifier = 1.0 exactly.
+    """
+    if not hits:
+        return 1.0
+    weighted = sum(
+        h.similarity * _OUTCOME_WEIGHT.get(h.outcome, 0.0) for h in hits
+    )
+    norm = sum(
+        abs(_OUTCOME_WEIGHT.get(h.outcome, 0.0)) * h.similarity for h in hits
+    )
+    if norm == 0.0:
+        return 1.0
+    score = weighted / norm  # ∈ [-1, +1]
+    return _clip(1.0 + ALPHA * score, 0.6, 1.4)
+
+
+# ---------------------------------------------------------------------------
 # Scored factor
 # ---------------------------------------------------------------------------
 
@@ -109,17 +154,24 @@ def score_hit(
     features: FeatureSet,
     project: PermitProject,
     overlays: GeoOverlays | None,
+    *,
+    precedent_hits: list["PrecedentHit"] | None = None,  # Phase 3: optional precedent wiring
 ) -> ScoredFactor:
     """
     Convert a rule hit to a fully-scored factor.
 
     trigger_prob drives the raw firing probability.
-    success_prob = base_success_rate (α=0, no precedent modifier in Phase 2).
+    success_prob = base_success_rate × precedent_modifier(hits).
     probability = trigger_prob × success_prob.
+
+    Phase 2 regression contract: precedent_hits=None (or []) → precedent_modifier=1.0
+    → scoring byte-identical to Phase 2.
     """
     modifier = taxonomy_def.project_modifier(project, overlays)
     trigger = _trigger_prob(taxonomy_def.beta_weights, features)
-    success = taxonomy_def.base_success_rate  # α = 0
+    hits = precedent_hits or []
+    prec_mod = precedent_modifier(hits)
+    success = taxonomy_def.base_success_rate * prec_mod
 
     # Gate: when the rule did not fire, attenuate probability by 0.2.
     # This ensures non-triggered categories remain low-probability even
@@ -139,7 +191,9 @@ def score_hit(
     )
     rule_specificity = len(beta_keys) / max(1, len(beta_keys) + 2)
 
-    conf = _confidence(features_present, len(beta_keys), rule_specificity)
+    # precedent_support scales with hit count (max at 3+ hits)
+    precedent_support = min(1.0, len(hits) / 3.0)
+    conf = _confidence(features_present, len(beta_keys), rule_specificity, precedent_support)
 
     return ScoredFactor(
         category=hit.category,

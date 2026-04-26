@@ -141,3 +141,29 @@ class RiskNarrationCacheRow(Base):
     rationales_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     summary: Mapped[str] = mapped_column(String, nullable=False)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ArrestExtractionCacheRow(Base):
+    """Cache table for Sonnet-extracted arrest data keyed by (arrest_id, extractor_version).
+
+    No FK — intentionally decoupled from permit_projects; same pattern as
+    RiskNarrationCacheRow.
+    """
+
+    __tablename__ = "arrest_extraction_cache"
+
+    arrest_id: Mapped[str] = mapped_column(String, primary_key=True)
+    extractor_version: Mapped[str] = mapped_column(String, primary_key=True)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    extracted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class RvvbBackfillStateRow(Base):
+    """Cursor tracking for the RvVb backfill pipeline (one row per source)."""
+
+    __tablename__ = "rvvb_backfill_state"
+
+    source: Mapped[str] = mapped_column(String, primary_key=True)
+    last_page_processed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_arrest_id_processed: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -31,6 +31,9 @@ dependencies = [
     "geopy>=2.4,<3",
     "anthropic>=0.40,<1",
     "openai>=1.50,<2",
+    "lancedb>=0.10,<0.20",
+    "pyarrow",
+    "tiktoken",
 ]
 
 [project.optional-dependencies]

@@ -169,7 +169,7 @@ def test_engine_version_is_bumped():
     s = _settings()
     engine = RealRiskEngine(s, narrator=_narrator_mock())
     assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
-    assert assessment.engine_version == "0.2.0-rules-v1"
+    assert assessment.engine_version == "0.3.0-rules-precedents-v1"
 
 
 # ---------------------------------------------------------------------------

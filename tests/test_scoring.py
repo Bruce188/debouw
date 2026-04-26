@@ -123,9 +123,15 @@ def test_confidence_clipped_at_zero():
 # ALPHA
 # ---------------------------------------------------------------------------
 
-def test_alpha_is_zero():
-    """Phase 2: ALPHA = 0.0 (no precedent modifier)."""
-    assert ALPHA == pytest.approx(0.0, abs=1e-9)
+def test_alpha_is_set_to_phase3_value():
+    """Phase 3: ALPHA = 0.4 (precedent modifier active)."""
+    assert ALPHA == pytest.approx(0.4, abs=1e-9)
+
+
+def test_modifier_is_one_when_no_precedents():
+    """Phase 2 regression: empty hits list → modifier == 1.0 (scoring identical to Phase 2)."""
+    from debouw.risk.scoring import precedent_modifier
+    assert precedent_modifier([]) == pytest.approx(1.0)
 
 
 # ---------------------------------------------------------------------------

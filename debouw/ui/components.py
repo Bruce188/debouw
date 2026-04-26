@@ -12,6 +12,65 @@ import streamlit as st
 from debouw.ui.theme import RISK_CATEGORY_LABELS_NL, color_for_score
 
 
+# NL labels for the 6 RvVb outcome enum values. Used to render precedent blocks.
+_OUTCOME_LABELS_NL: dict[str, str] = {
+    "vernietigd": "Vernietigd",
+    "gedeeltelijk": "Gedeeltelijk vernietigd",
+    "verworpen": "Verworpen",
+    "onontvankelijk": "Onontvankelijk",
+    "afstand": "Afstand van geding",
+    "andere": "Andere",
+}
+
+
+def _render_precedent_block(top_risks: list[dict]) -> None:
+    """Render an "Vergelijkbare RvVb-arresten" block per top risk.
+
+    Sections with no precedents are skipped silently.
+    """
+    has_any = any((rf.get("precedents") or []) for rf in top_risks)
+    if not has_any:
+        return
+
+    with st.expander("Vergelijkbare RvVb-arresten"):
+        for rf in top_risks:
+            precedents = rf.get("precedents") or []
+            if not precedents:
+                continue
+            cat_label = rf.get("category", "")
+            try:
+                from debouw.models.permit import RiskCategory
+                cat = RiskCategory(cat_label)
+                cat_label = RISK_CATEGORY_LABELS_NL.get(cat, cat_label)
+            except (ValueError, KeyError):
+                pass
+            st.markdown(f"**{cat_label}**")
+            rows = []
+            for p in precedents:
+                arrest_id = p.get("precedent_id", "")
+                outcome = p.get("outcome", "")
+                outcome_label = _OUTCOME_LABELS_NL.get(outcome, outcome)
+                similarity = p.get("similarity", 0.0)
+                summary = p.get("summary", "")
+                rows.append(
+                    {
+                        "Arrest": (
+                            f"[{arrest_id}](https://www.dbrc.be/rechtspraak/arrest/{arrest_id})"
+                            if arrest_id
+                            else ""
+                        ),
+                        "Uitkomst": outcome_label,
+                        "Gelijkenis": (
+                            f"{similarity:.2f}"
+                            if isinstance(similarity, (int, float))
+                            else ""
+                        ),
+                        "Citaat": summary[:200],
+                    }
+                )
+            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+
 def render_risk_table(
     projects: list[dict], assessments: dict[str, dict]
 ) -> str | None:
@@ -175,3 +234,4 @@ def render_project_detail(project: dict, assessment: dict | None) -> None:
                     }
                 )
             st.dataframe(pd.DataFrame(risk_rows), use_container_width=True)
+        _render_precedent_block(top_risks)

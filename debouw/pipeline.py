@@ -58,6 +58,10 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
     Session = make_sessionmaker(engine)
     breaker = CircuitBreaker()
     risk_engine = RealRiskEngine(settings, session_factory=Session)
+    # Prime per-category query vectors before the per-project hot path
+    # (review-v5 N1 — warmup is hoisted out of classify; without this call
+    # production runs in degraded mode with modifier=1.0 across the board).
+    await risk_engine.warmup()
     result = PipelineResult()
 
     try:

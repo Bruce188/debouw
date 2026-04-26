@@ -74,7 +74,7 @@ Bij vragen of verzoeken tot verwijdering van gegevens:
 
 ## Engine version policy
 
-De risicoengine is versioned via het veld `engine_version` (huidig: `0.2.0-rules-v1`).
+De risicoengine is versioned via het veld `engine_version` (huidig: `0.3.0-rules-precedents-v1`).
 Elke versiestap maakt de eerder gecachte LLM-rationale ongeldig: de combinatiesleutel
 `(project_external_id, engine_version)` in de `risk_narration_cache`-tabel wordt niet
 overschreven, maar er wordt een nieuwe rij aangemaakt. Verouderde rijen worden niet
@@ -101,3 +101,50 @@ De narratorketen werkt als volgt:
 Het ontbreken van beide sleutels wordt éénmalig gelogd bij initialisatie van de engine
 (`narrator_no_api_keys`). Geen foutmelding — de applicatie functioneert volledig
 via het statische sjabloon.
+
+## Precedent corpus stability
+
+De RvVb-precedentenkorpus (LanceDB-tabel `rvvb_arrests`) is een **bevroren snapshot**
+van de DBRC-rechtspraakwebsite op het moment van `debouw backfill-rvvb`. Volgende runs
+voegen nieuwe arresten toe maar verwijderen nooit:
+
+- `arrest_id` is uniek; herhaald upsert is idempotent (rij wordt overgeslagen).
+- Wijziging van `arrest_extractor_version` (Settings-veld) leidt tot een **tweede
+  rij** voor hetzelfde arrest, niet tot een vervanging. Verouderde
+  `extractor_version`-rijen blijven in de korpus aanwezig totdat ze handmatig
+  worden verwijderd.
+- Bij toekomstige correcties op DBRC-zijde (nooit waargenomen, maar mogelijk)
+  draaien we `debouw backfill-rvvb` opnieuw met een bumped `arrest_extractor_version`;
+  oude rijen blijven beschikbaar voor traceerbaarheid.
+- Embeddingmodelversie (`text-embedding-3-large`, 3072-dim) is **gepind** in
+  `Settings.embedding_model`. Wijzigen van het model zonder volledige
+  re-embedding maakt cosineafstanden onvergelijkbaar tussen oude en nieuwe rijen.
+
+## LanceDB single-writer
+
+LanceDB schrijft op disk via een native bestandsslot. Concurrent
+`debouw backfill-rvvb`-processen worden geblokkeerd op het slot — de eerste
+schrijver wint, de tweede wacht. **Eén backfill-proces per machine** is de
+operationele aanname. Reads (`engine.classify()` met LanceDB-zoekopdracht) zijn
+veilig parallel.
+
+**Python 3.14 native-binding bug:** `lancedb` 0.19.0's `_lancedb.abi3.so`
+segfaults op een bare `lancedb.connect(...)` op Python 3.14. De engine-purity
+tests verwerken dit via de empty-vector fallback (`embed_text` retourneert `[]`
+zonder OpenAI key → `search` retourneert `[]` zonder LanceDB-call). Voor
+volledige LanceDB-tests draait u op Python 3.12 (zie `tests/test_precedents.py`
+- skipped onder 3.14). Productie-aanbeveling: pin Python 3.12 voor de
+backfill-machine totdat lancedb een Python-3.14-compatibele wheel uitbrengt.
+
+## Gold-set bootstrap
+
+De kalibratieharnas (`debouw eval`) berekent Brier + P@5 over een handgelabeld
+gold set in `debouw/risk/eval/gold_set.jsonl`. Bij minder dan
+`Settings.gold_set_min_n` (= 30) cases vallen de metrics terug op `None` en
+worden de gates gemarkeerd als `"insufficient_gold_set"`.
+
+Het project levert **3 zaad-cases** mee (Bothuyne Oudenaarde 2025, Lindepark
+Sint-Niklaas 2024, De Lijn Wondelgem 2024). De gebruiker moet **27-47
+extra cases** handmatig labelen vanuit de RvVb-korpus om de gates uit
+`insufficient_gold_set` te tillen. Kalibratiebins (10 buckets) worden wel
+gerapporteerd ongeacht N — diagnostisch nuttig vanaf de eerste run.

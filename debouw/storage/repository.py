@@ -13,10 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from debouw.models.permit import PermitProject, PublicInquiry, RiskAssessment
 from debouw.storage.schema import (
+    ArrestExtractionCacheRow,
     PermitProjectRow,
     PublicInquiryRow,
     RiskAssessmentRow,
     RiskNarrationCacheRow,
+    RvvbBackfillStateRow,
     ScrapeStateRow,
 )
 
@@ -273,6 +275,107 @@ async def upsert_narration_cache(
         set_={
             col: stmt.excluded[col]
             for col in ["rationales_json", "summary", "generated_at"]
+        },
+    )
+    await session.execute(stmt)
+
+
+# ---------------------------------------------------------------------------
+# Arrest extraction cache (tier-3 resume safety)
+# ---------------------------------------------------------------------------
+
+async def get_arrest_extraction(
+    session: AsyncSession,
+    arrest_id: str,
+    extractor_version: str,
+) -> dict | None:
+    """Return cached payload for (arrest_id, extractor_version) or None on miss.
+
+    Returns ``{"payload_json": ..., "extracted_at": ...}``. Used by the RvVb
+    Sonnet extractor to short-circuit re-runs (tier 3 resume safety).
+    """
+    result = await session.execute(
+        select(ArrestExtractionCacheRow).where(
+            ArrestExtractionCacheRow.arrest_id == arrest_id,
+            ArrestExtractionCacheRow.extractor_version == extractor_version,
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+    return {
+        "payload_json": row.payload_json,
+        "extracted_at": (
+            row.extracted_at.replace(tzinfo=timezone.utc)
+            if row.extracted_at and row.extracted_at.tzinfo is None
+            else row.extracted_at
+        ),
+    }
+
+
+async def upsert_arrest_extraction(
+    session: AsyncSession,
+    *,
+    arrest_id: str,
+    extractor_version: str,
+    payload_json: dict,
+    extracted_at: datetime,
+) -> None:
+    """Upsert an arrest extraction; composite PK (arrest_id, extractor_version)."""
+    stmt = sqlite_insert(ArrestExtractionCacheRow).values(
+        arrest_id=arrest_id,
+        extractor_version=extractor_version,
+        payload_json=payload_json,
+        extracted_at=extracted_at,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["arrest_id", "extractor_version"],
+        set_={
+            col: stmt.excluded[col]
+            for col in ["payload_json", "extracted_at"]
+        },
+    )
+    await session.execute(stmt)
+
+
+# ---------------------------------------------------------------------------
+# RvVb backfill state (tier-1 listing-cursor resume safety)
+# ---------------------------------------------------------------------------
+
+async def get_rvvb_backfill_state(
+    session: AsyncSession,
+    source: str = "rvvb",
+) -> tuple[int | None, str | None] | None:
+    """Return (last_page_processed, last_arrest_id_processed) or None on miss."""
+    result = await session.execute(
+        select(RvvbBackfillStateRow).where(RvvbBackfillStateRow.source == source)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+    return row.last_page_processed, row.last_arrest_id_processed
+
+
+async def upsert_rvvb_backfill_state(
+    session: AsyncSession,
+    *,
+    last_page: int | None,
+    last_arrest_id: str | None,
+    updated_at: datetime,
+    source: str = "rvvb",
+) -> None:
+    """Upsert the RvVb backfill cursor (one row per source)."""
+    stmt = sqlite_insert(RvvbBackfillStateRow).values(
+        source=source,
+        last_page_processed=last_page,
+        last_arrest_id_processed=last_arrest_id,
+        updated_at=updated_at,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["source"],
+        set_={
+            col: stmt.excluded[col]
+            for col in ["last_page_processed", "last_arrest_id_processed", "updated_at"]
         },
     )
     await session.execute(stmt)

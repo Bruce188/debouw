@@ -1,0 +1,5 @@
+{"project_external_id": "synthetic_case_1", "expected_top_categories": ["gro_height", "mobility_parking"], "actual_outcome": "vernietigd", "notes": "Synthetic — high-rise + parking mismatch"}
+{"project_external_id": "synthetic_case_2", "expected_top_categories": ["water_flood", "nature_2000_n"], "actual_outcome": "vernietigd", "notes": "Synthetic — flood plain + Natura 2000"}
+{"project_external_id": "synthetic_case_3", "expected_top_categories": ["heritage_inv", "trees_kapverg"], "actual_outcome": "gedeeltelijk", "notes": "Synthetic — heritage + tree felling"}
+{"project_external_id": "synthetic_case_4", "expected_top_categories": ["mer_screening"], "actual_outcome": "verworpen", "notes": "Synthetic — MER threshold passed"}
+{"project_external_id": "synthetic_case_5", "expected_top_categories": ["bpa_rup_conflict", "function_mix_zoning"], "actual_outcome": "andere", "notes": "Synthetic — BPA conflict + zoning"}

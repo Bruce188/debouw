@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Literal
+import re
+from typing import TYPE_CHECKING, Literal
 
 import structlog
 from pydantic import BaseModel, ConfigDict
@@ -30,6 +31,12 @@ from pydantic import BaseModel, ConfigDict
 from debouw.config import Settings
 from debouw.models.permit import GeoOverlays, PermitProject, RiskCategory
 from debouw.risk.taxonomy import TAXONOMY
+
+if TYPE_CHECKING:
+    from debouw.risk.precedents import PrecedentHit
+
+# Pattern for valid RvVb arrest IDs
+_ARREST_ID_RE = re.compile(r"^RVVB\.\w+\.\d{4}\.\d{4}$", re.IGNORECASE)
 
 log = structlog.get_logger(__name__)
 
@@ -66,7 +73,10 @@ INSTRUCTIONS = (
     "Verwijs uitsluitend naar juridische grondslagen die vermeld staan in het 'legal_basis_nl'-veld "
     "van het betreffende risico. Citeer geen andere wetsartikelen. "
     "Gebruik geen anglicismen. Wees objectief en feitelijk. "
-    "Geef een samenvattende zin van het totale risicoprofiel in 'summary_nl'."
+    "Geef een samenvattende zin van het totale risicoprofiel in 'summary_nl'. "
+    "Wanneer in 'precedents' arrest_id's worden vermeld, citeer er ten hoogste twee letterlijk "
+    "in de rationale_nl en plaats hen in 'citations'. "
+    "Citeer alleen arrest_id's die in de input voorkomen."
 )
 
 
@@ -84,6 +94,37 @@ TAXONOMY_AS_MARKDOWN: str = _build_taxonomy_markdown()
 
 # Confidence threshold: factors below this get static template
 _LOW_CONFIDENCE_THRESHOLD = 0.3
+
+
+# ---------------------------------------------------------------------------
+# Citation validation helper (Phase 3 — soft drop of invalid arrest_ids)
+# ---------------------------------------------------------------------------
+
+def _validate_citations(narration: "ProjectNarration") -> "ProjectNarration":
+    """
+    Post-parse soft validation: drop citations that are neither a valid
+    RvVb arrest_id pattern nor a known legal_basis_nl reference.
+
+    Closed-list: RVVB\.A\.\d{4}\.\d{4} (case-insensitive).
+    Does NOT invalidate the response — just logs dropped citations.
+    """
+    from debouw.risk.taxonomy import TAXONOMY
+    known_legal_bases: set[str] = {defn.legal_basis_nl for defn in TAXONOMY.values()}
+
+    cleaned_per_risk: dict[str, "RiskNarration"] = {}
+    for cat_key, narr in narration.per_risk.items():
+        valid_citations = []
+        for citation in narr.citations:
+            if _ARREST_ID_RE.match(citation) or citation in known_legal_bases:
+                valid_citations.append(citation)
+            else:
+                log.debug("narrator_citation_dropped", citation=citation)
+        cleaned_per_risk[cat_key] = RiskNarration(
+            rationale_nl=narr.rationale_nl,
+            citations=valid_citations,
+            certainty=narr.certainty,
+        )
+    return ProjectNarration(summary_nl=narration.summary_nl, per_risk=cleaned_per_risk)
 
 
 # ---------------------------------------------------------------------------
@@ -158,11 +199,17 @@ class Narrator:
         session,  # AsyncSession | None
         project: PermitProject,
         factors: list,  # list[ScoredFactor]
+        *,
+        precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,  # Phase 3
     ) -> ProjectNarration:
         """
         Produce Dutch-language narration for the top-k risk factors.
 
         Cache-first: hits cost zero. Miss → API → static fallback.
+
+        Phase 3: precedents_by_category passes arrest-citation hints to
+        _build_user_message so the LLM can cite real RvVb arrest_ids.
+        Default None preserves Phase 2 callers (backward compat).
         """
         s = self._settings
 
@@ -193,10 +240,10 @@ class Narrator:
         narration: ProjectNarration | None = None
 
         if self._anthropic_client is not None:
-            narration = await self._call_anthropic(project, api_factors)
+            narration = await self._call_anthropic(project, api_factors, precedents_by_category)
 
         if narration is None and self._openai_client is not None:
-            narration = await self._call_openai(project, api_factors)
+            narration = await self._call_openai(project, api_factors, precedents_by_category)
 
         if narration is None:
             narration = _static_narration(api_factors)
@@ -232,9 +279,16 @@ class Narrator:
             log.warning("narrator_cache_write_failed", error=str(exc))
 
     def _build_user_message(
-        self, project: PermitProject, factors: list
+        self,
+        project: PermitProject,
+        factors: list,
+        precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
     ) -> str:
-        """Build the user message JSON for the LLM."""
+        """Build the user message JSON for the LLM.
+
+        Phase 3: includes a per-risk 'precedents' block with up to 2 arrest_ids
+        per category so the LLM can cite them in rationale_nl.
+        """
         project_dict = {
             "external_id": project.external_id,
             "title": project.title,
@@ -249,8 +303,10 @@ class Narrator:
             "address": project.address.raw if project.address else None,
         }
 
+        prec_map = precedents_by_category or {}
         factors_dict = []
         for f in factors:
+            cat_hits = prec_map.get(f.category, [])[:2]
             factors_dict.append({
                 "category": f.category.value,
                 "probability": round(f.probability, 4),
@@ -259,6 +315,15 @@ class Narrator:
                 "confidence": round(f.confidence, 4),
                 "evidence": f.evidence,
                 "hedged": f.confidence < 0.5,  # hedged flag per plan spec
+                "precedents": [
+                    {
+                        "arrest_id": h.arrest_id,
+                        "outcome": h.outcome,
+                        "similarity": round(h.similarity, 3),
+                        "decision_excerpt": h.decision_excerpt[:240],
+                    }
+                    for h in cat_hits
+                ],
             })
 
         return json.dumps(
@@ -268,14 +333,17 @@ class Narrator:
         )
 
     async def _call_anthropic(
-        self, project: PermitProject, factors: list
+        self,
+        project: PermitProject,
+        factors: list,
+        precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
     ) -> ProjectNarration | None:
         """Call Anthropic with prompt caching; retry on RateLimitError."""
         import anthropic
         from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
         s = self._settings
-        user_msg = self._build_user_message(project, factors)
+        user_msg = self._build_user_message(project, factors, precedents_by_category)
 
         # System prompt with cache_control on both blocks
         system = [
@@ -329,6 +397,7 @@ class Narrator:
 
         try:
             result = await _call()
+            result = _validate_citations(result)
             log.debug("narrator_anthropic_ok", project=project.external_id)
             return result
         except anthropic.RateLimitError:
@@ -346,11 +415,14 @@ class Narrator:
             return None
 
     async def _call_openai(
-        self, project: PermitProject, factors: list
+        self,
+        project: PermitProject,
+        factors: list,
+        precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
     ) -> ProjectNarration | None:
         """Call OpenAI fallback; no retry on non-rate-limit errors."""
         s = self._settings
-        user_msg = self._build_user_message(project, factors)
+        user_msg = self._build_user_message(project, factors, precedents_by_category)
         system_text = INSTRUCTIONS + "\n\n" + TAXONOMY_AS_MARKDOWN
 
         try:

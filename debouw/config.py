@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # --- Throttle rates (seconds per request) ---
     throttle_gent_seconds: float = 2.0
     throttle_nominatim_seconds: float = 1.0
-    throttle_rvvb_seconds: float = 3.0
+    throttle_rvvb_seconds: float = 10.0  # bumped to honour robots.txt Crawl-Delay
     throttle_inzageloket_seconds: float = 5.0
     throttle_geopunt_seconds: float = 1.0
 
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     # --- Engine + logging ---
-    engine_version: str = "0.2.0-rules-v1"
+    engine_version: str = "0.3.0-rules-precedents-v1"
     log_format: Literal["json", "console"] = "console"
 
     # --- Identification (Inzageloket robots policy) ---
@@ -62,6 +62,21 @@ class Settings(BaseSettings):
     openai_fallback_model: str = "gpt-4o-2024-08-06"
     narration_cache_enabled: bool = True
     narration_max_tokens: int = 1024
+
+    # --- Phase 3: RvVb backfill + precedent corpus ---
+    rvvb_backfill_root: Path = Field(
+        default_factory=lambda: Path.home() / "debouw" / "data" / "raw" / "rvvb"
+    )
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dim: int = 3072
+    lancedb_arrests_table: str = "rvvb_arrests"
+    sonnet_extraction_concurrency: int = 8
+    sonnet_extraction_model: str = "claude-sonnet-4-5-20250929"
+    precedent_search_k: int = 8
+    precedent_search_threshold: float = 0.78
+    gold_set_min_n: int = 30
+    precedent_alpha: float = 0.4
+    arrest_extractor_version: str = "0.1"
 
     # --- API keys (resolved from .env, never persisted) ---
     anthropic_api_key: str | None = None

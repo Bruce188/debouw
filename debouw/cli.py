@@ -74,6 +74,33 @@ def serve(port: int = typer.Option(8501)) -> None:
 
 
 @app.command(name="backfill-rvvb")
-def backfill_rvvb(years: str = typer.Option("2022,2023,2024,2025")) -> None:
-    """Backfill RvVb arrest corpus."""
-    typer.echo("Not yet implemented in Phase 0; see master plan § Phase 3")
+def backfill_rvvb(
+    years: str = typer.Option("2022,2023,2024,2025"),
+    limit: int | None = typer.Option(None, help="Max arrests (default: unlimited)"),
+) -> None:
+    """Scrape + extract + embed + LanceDB-write the RvVb arrest corpus."""
+    import asyncio
+    from debouw.ingest.sources.rvvb import backfill_run
+    settings = Settings()
+    configure_logging(settings)
+    year_list = [int(y) for y in years.split(",") if y.strip()]
+    n = asyncio.run(backfill_run(settings, years=year_list, limit=limit))
+    typer.echo(f"backfilled {n} arrests")
+
+
+@app.command(name="eval")
+def eval_cmd(
+    gold_set: str = typer.Option("debouw/risk/eval/gold_set.jsonl"),
+) -> None:
+    """Run calibration backtest against gold_set.jsonl."""
+    import asyncio
+    from debouw.risk.calibration import run_calibration
+    settings = Settings()
+    configure_logging(settings)
+    report = asyncio.run(
+        run_calibration(settings, gold_set_path=Path(gold_set))
+    )
+    typer.echo(
+        f"n={report.n}; P@5={report.p_at_5}; "
+        f"Brier={report.brier}; gates={report.gates}"
+    )

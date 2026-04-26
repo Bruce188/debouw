@@ -121,7 +121,7 @@ def create_http_client(settings: Settings, *, source: str) -> ThrottledHttpClien
     base_url: str = getattr(settings, base_url_attr, "")
 
     # Identified sources require a meaningful User-Agent per polite-scrape policy
-    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed"}
+    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb"}
     user_agent = settings.nominatim_user_agent if source in identified_sources else None
 
     return ThrottledHttpClient(
