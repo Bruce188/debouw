@@ -25,6 +25,8 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from statistics import mean
 
+import structlog
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from debouw.config import Settings
@@ -165,6 +167,23 @@ class RealRiskEngine:
 
         # 2. Apply rules
         hits = apply_all(features, project.overlays, project)
+
+        # 3. Region filter — drop categories not applicable to this project's region.
+        #    VL-only categories (e.g. BPA_RUP_CONFLICT, WATER_FLOOD) are skipped for
+        #    Brussels projects; unlisted future regions get the same treatment.
+        filtered_hits = []
+        for hit in hits:
+            defn = get_category_def(hit.category)
+            if project.region not in defn.applicable_regions:
+                structlog.get_logger().debug(
+                    "rule_skipped_outside_region",
+                    category=hit.category.value,
+                    project_region=project.region,
+                    applicable_regions=sorted(defn.applicable_regions),
+                )
+                continue
+            filtered_hits.append(hit)
+        hits = filtered_hits
 
         # 4. PASS 1: Score each hit without precedent_hits
         scored_pass1: list[ScoredFactor] = []

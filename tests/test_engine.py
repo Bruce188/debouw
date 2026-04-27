@@ -281,3 +281,56 @@ def test_load_gent_snapshot():
     from debouw.models.permit import RiskAssessment
     validated = RiskAssessment.model_validate(assessment.model_dump(mode="python"))
     assert validated.engine_version == assessment.engine_version
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: Region filter
+# ---------------------------------------------------------------------------
+
+def test_classify_skips_rules_outside_region():
+    """
+    Brussels projects must not surface BPA_RUP_CONFLICT or WATER_FLOOD;
+    Vlaanderen projects must surface all 14 categories when triggered.
+    """
+    import asyncio
+
+    from debouw.risk.eval.synthetic_fixtures import SYNTHETIC_PROJECTS
+    from debouw.risk.taxonomy import TAXONOMY
+
+    s = _settings()
+
+    # --- Brussels: VL-only categories must be absent ---
+    vl_only_cats = frozenset(
+        cat
+        for cat, defn in TAXONOMY.items()
+        if defn.applicable_regions == frozenset({"vl"})
+    )
+    assert RiskCategory.BPA_RUP_CONFLICT in vl_only_cats
+    assert RiskCategory.WATER_FLOOD in vl_only_cats
+
+    engine_bru = RealRiskEngine(s, narrator=_narrator_mock())
+
+    for vl_cat in vl_only_cats:
+        # Use the synthetic project designed to trigger this VL-only category,
+        # but override region to brussels.
+        base_project = SYNTHETIC_PROJECTS[vl_cat][0]
+        bru_project = base_project.model_copy(update={"region": "brussels"})
+        assessment = asyncio.run(engine_bru.classify(bru_project))
+        all_returned_cats = {rf.category for rf in assessment.top_risks}
+        assert vl_cat not in all_returned_cats, (
+            f"VL-only category {vl_cat.value} appeared in Brussels assessment"
+        )
+
+    # --- Vlaanderen: VL-only categories CAN appear when triggered ---
+    engine_vl = RealRiskEngine(s, narrator=_narrator_mock())
+
+    for vl_cat in vl_only_cats:
+        vl_project = SYNTHETIC_PROJECTS[vl_cat][0]
+        # Ensure region is "vl" (default, but be explicit)
+        assert vl_project.region == "vl", f"Synthetic fixture for {vl_cat} has wrong region"
+        assessment = asyncio.run(engine_vl.classify(vl_project))
+        # The category must be present somewhere in top_risks (it was designed to fire)
+        all_returned_cats = {rf.category for rf in assessment.top_risks}
+        assert vl_cat in all_returned_cats, (
+            f"VL-only category {vl_cat.value} was unexpectedly absent from VL assessment"
+        )

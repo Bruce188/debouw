@@ -16,6 +16,7 @@ from debouw.ingest.circuit_breaker import CircuitBreaker
 from debouw.ingest.enrich_geopunt import enrich
 from debouw.ingest.geocode import geocode
 from debouw.ingest.sources import SchemaDriftError
+from debouw.ingest.sources.brussels import BrusselsSource
 from debouw.ingest.sources.gent import GentSource
 from debouw.ingest.sources.inzageloket import InzageloketSource
 from debouw.risk.engine import RealRiskEngine
@@ -34,6 +35,7 @@ log = structlog.get_logger(__name__)
 _SOURCE_REGISTRY = {
     "gent": GentSource,
     "vlaanderen_inzage": InzageloketSource,
+    "brussels": BrusselsSource,
 }
 
 

@@ -348,3 +348,51 @@ async def test_pipeline_skips_unchanged_dossier(tmp_path: Path) -> None:
         f"Run 2: classify should not have been called again; "
         f"total call count = {classify_call_count}"
     )
+
+
+# ---------------------------------------------------------------------------
+# 2.5: Region pass-through smoke — Gent rows default to region="vl"
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_pipeline_gent_region_defaults_to_vl(tmp_path: Path) -> None:
+    """Gent pipeline persists region='vl' for every project (Phase 5 regression)."""
+    settings = _settings(tmp_path)
+    _init_db(settings)
+
+    with respx.mock(assert_all_called=False) as mock, _patch_settings(settings):
+        _all_mocks(mock, detail_html=DETAIL_WITH_ADDRESS_HTML)
+        from debouw.pipeline import run
+
+        result = await run("gent", limit=1)
+
+    assert result.ingested >= 1, "Pipeline must ingest at least one Gent project"
+
+    engine = create_engine(f"sqlite:///{settings.db_path}")
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT external_id, region FROM permit_projects")
+        ).fetchall()
+
+    engine.dispose()
+
+    assert rows, "No projects found in DB after pipeline run"
+    for ext_id, region in rows:
+        assert region == "vl", (
+            f"Gent project {ext_id!r} should have region='vl', got {region!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: Brussels registry smoke
+# ---------------------------------------------------------------------------
+
+def test_brussels_source_in_registry():
+    """_SOURCE_REGISTRY contains 'brussels' key mapping to BrusselsSource."""
+    from debouw.pipeline import _SOURCE_REGISTRY
+    from debouw.ingest.sources.brussels import BrusselsSource
+    assert "brussels" in _SOURCE_REGISTRY, (
+        "'brussels' not registered in _SOURCE_REGISTRY"
+    )
+    assert _SOURCE_REGISTRY["brussels"] is BrusselsSource

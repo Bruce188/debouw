@@ -32,8 +32,8 @@ dependencies = [
     "anthropic>=0.40,<1",
     "openai>=1.50,<2",
     "lancedb>=0.10,<0.20",
-    "pyarrow",
-    "tiktoken",
+    "pyarrow>=18,<22",
+    "tiktoken>=0.7,<1",
     "playwright>=1.45,<2",
 ]
 

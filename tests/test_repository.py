@@ -214,3 +214,36 @@ async def test_upsert_inquiry_round_trip(
     assert row is not None, "PublicInquiryRow not found after upsert"
     # FK correctly set to the project's external_id
     assert row.project_external_id == rich_project.external_id
+
+
+@pytest.mark.asyncio
+async def test_upsert_get_region_brussels_round_trip(
+    session: AsyncSession, rich_project: PermitProject
+) -> None:
+    """upsert_project with region='brussels' → get_project returns region='brussels'."""
+    brussels_project = rich_project.model_copy(
+        update={
+            "external_id": "brussels:01/PU/1984289",
+            "source": "brussels_openpermits",
+            "region": "brussels",
+        }
+    )
+    await upsert_project(session, brussels_project)
+    fetched = await get_project(session, brussels_project.external_id)
+
+    assert fetched is not None, "get_project returned None after Brussels upsert"
+    assert fetched.region == "brussels"
+    assert fetched.source == "brussels_openpermits"
+    assert fetched.external_id == "brussels:01/PU/1984289"
+
+
+@pytest.mark.asyncio
+async def test_default_region_is_vl(
+    session: AsyncSession, rich_project: PermitProject
+) -> None:
+    """Existing Gent projects default to region='vl' on round-trip."""
+    await upsert_project(session, rich_project)
+    fetched = await get_project(session, rich_project.external_id)
+
+    assert fetched is not None
+    assert fetched.region == "vl"

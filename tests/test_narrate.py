@@ -22,7 +22,13 @@ from debouw.models.permit import (
     PermitProjectStatus,
     RiskCategory,
 )
-from debouw.risk.narrate import Narrator, ProjectNarration, RiskNarration
+from debouw.risk.narrate import (
+    INSTRUCTIONS_FR,
+    Narrator,
+    ProjectNarration,
+    RiskNarration,
+    _static_narration,
+)
 from debouw.risk.scoring import ScoredFactor
 
 _T = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -316,3 +322,155 @@ def test_anthropic_rate_limit_retried_then_falls_through():
     # Should fall through to static template
     for narr in result.per_risk.values():
         assert narr.certainty == "laag"
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: FR narrator branch (Brussels region)
+# ---------------------------------------------------------------------------
+
+def _brussels_project() -> PermitProject:
+    """Minimal Brussels project: region='brussels', source=brussels_openpermits."""
+    return PermitProject(
+        external_id="brussels:01/PU/1984289",
+        source="brussels_openpermits",
+        region="brussels",
+        omv_reference="01/PU/1984289",
+        detail_url="https://openpermits.brussels/fr/event/submission/2026/01/PU/1984289",
+        title="Rénovation d'un immeuble à appartements",
+        description=None,
+        applicant_name=None,
+        address=Address(
+            raw="Avenue Victor et Jules Bertaux 56, 1070 Anderlecht",
+            point=GeoPoint(lat=50.8370, lon=4.3144),
+            parcel_id=None,
+        ),
+        project_type=None,
+        floors=4,
+        height_m=14.0,
+        units=12,
+        parking_spaces=0,
+        trees_to_fell=None,
+        mer_status=None,
+        iioa_class=None,
+        status=PermitProjectStatus.INTAKE,
+        decision_date=None,
+        decision_outcome=None,
+        attachments=[],
+        dossier_pdfs=[],
+        overlays=None,
+        raw_html_path=Path("/tmp/brussels.html"),
+        first_seen_at=_T,
+        last_changed_at=_T,
+        content_hash="d" * 64,
+        decision_regime="post_2026_reform",
+    )
+
+
+def _brussels_factors() -> list[ScoredFactor]:
+    """Factors for Brussels-applicable categories only (no VL-only)."""
+    return [
+        ScoredFactor(
+            category=RiskCategory.GRO_HEIGHT,
+            probability=0.6,
+            severity=0.7,
+            expected_delay_days=210.0,
+            confidence=0.8,
+            evidence=["floors=4"],
+            typical_objector="voisins",
+        ),
+    ]
+
+
+def test_narrate_brussels_uses_fr_instructions():
+    """Brussels project → INSTRUCTIONS_FR + French taxonomy in Anthropic system blocks."""
+    s = _settings(anthropic_api_key="sk-test-anthropic")
+    project = _brussels_project()
+    factors = _brussels_factors()
+
+    # Build a canned narration that Anthropic returns
+    canned = ProjectNarration(
+        summary_nl="Résumé du profil de risque.",
+        per_risk={
+            "gro_height": RiskNarration(
+                rationale_nl="La hauteur du bâtiment dépasse la norme.",
+                citations=["art. 175 CoBAT"],
+                certainty="hoog",
+            ),
+        },
+    )
+    json_response = canned.model_dump_json()
+
+    captured_system: list = []
+
+    async def _capture_call(*args, **kwargs):
+        captured_system.extend(kwargs.get("system", []))
+        mock_message = MagicMock()
+        mock_message.content = [MagicMock(text=json_response)]
+        return mock_message
+
+    mock_client = MagicMock()
+    mock_client.messages.create = _capture_call
+
+    narrator = Narrator(s)
+    narrator._anthropic_client = mock_client
+
+    import asyncio
+    result = asyncio.run(narrator.narrate(None, project, factors))
+
+    # INSTRUCTIONS_FR must appear in the system blocks
+    system_texts = " ".join(block["text"] for block in captured_system)
+    assert INSTRUCTIONS_FR[:60] in system_texts, (
+        "INSTRUCTIONS_FR was not included in the Anthropic system blocks for a Brussels project"
+    )
+    # French taxonomy must also be present: 'CoBAT' is a reliable FR token
+    assert "CoBAT" in system_texts, (
+        "French taxonomy markdown (CoBAT) was not included in system blocks for a Brussels project"
+    )
+    # Result should parse fine
+    assert result.summary_nl == canned.summary_nl
+
+
+def test_static_narration_fr_fallback():
+    """_static_narration uses FR fields for Brussels, NL fields for VL."""
+    from debouw.risk.taxonomy import TAXONOMY
+
+    # Pick a category that has FR sibling fields (GRO_HEIGHT is Brussels-applicable)
+    vl_factor = ScoredFactor(
+        category=RiskCategory.GRO_HEIGHT,
+        probability=0.5,
+        severity=0.7,
+        expected_delay_days=200.0,
+        confidence=0.2,
+        evidence=[],
+        typical_objector="omwonenden",
+    )
+    bru_factor = ScoredFactor(
+        category=RiskCategory.GRO_HEIGHT,
+        probability=0.5,
+        severity=0.7,
+        expected_delay_days=200.0,
+        confidence=0.2,
+        evidence=[],
+        typical_objector="voisins",
+    )
+
+    vl_project = _project()
+    bru_project = _brussels_project()
+
+    defn = TAXONOMY[RiskCategory.GRO_HEIGHT]
+    assert defn.static_rationale_fr is not None, "GRO_HEIGHT must have static_rationale_fr"
+    assert defn.legal_basis_fr is not None, "GRO_HEIGHT must have legal_basis_fr"
+
+    # Vlaanderen → NL fields
+    nl_result = _static_narration([vl_factor], project=vl_project)
+    assert nl_result.per_risk["gro_height"].rationale_nl == defn.static_rationale_nl
+    assert nl_result.per_risk["gro_height"].citations == [defn.legal_basis_nl]
+    # NL summary
+    assert "Onvoldoende" in nl_result.summary_nl
+
+    # Brussels → FR fields
+    fr_result = _static_narration([bru_factor], project=bru_project)
+    assert fr_result.per_risk["gro_height"].rationale_nl == defn.static_rationale_fr
+    assert fr_result.per_risk["gro_height"].citations == [defn.legal_basis_fr]
+    # FR summary
+    assert "insuffisantes" in fr_result.summary_nl

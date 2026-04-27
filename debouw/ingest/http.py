@@ -112,6 +112,7 @@ _SOURCE_THROTTLE_MAP = {
     "inzageloket": "throttle_inzageloket_seconds",
     "geopunt": "throttle_geopunt_seconds",
     "onroerend_erfgoed": "throttle_geopunt_seconds",
+    "brussels": "throttle_brussels_seconds",
 }
 
 _SOURCE_BASE_URL_MAP = {
@@ -121,6 +122,7 @@ _SOURCE_BASE_URL_MAP = {
     "inzageloket": "inzageloket_base",
     "geopunt": "geopunt_base",
     "onroerend_erfgoed": "onroerend_erfgoed_base",
+    "brussels": "openpermits_brussels_base",
 }
 
 
@@ -135,7 +137,7 @@ def create_http_client(settings: Settings, *, source: str) -> ThrottledHttpClien
     base_url: str = getattr(settings, base_url_attr, "")
 
     # Identified sources require a meaningful User-Agent per polite-scrape policy
-    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb", "inzageloket"}
+    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb", "inzageloket", "brussels"}
     user_agent = settings.nominatim_user_agent if source in identified_sources else None
 
     return ThrottledHttpClient(

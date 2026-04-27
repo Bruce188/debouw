@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+    <html lang="fr">
+<head>
+    <title>Permis 01/PU/1984289 - Région de Bruxelles-Capitale</title>
+
+    <!-- Meta Tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description"
+          content="Mettre en conformité les modifications volumétriques en façade arrière (véranda, cour anglaise, fermeture des balcons), l’aménagement du R-1 en locaux habitables, les constructions de volume en zone de cour et jardin (carport, pergolas), l’aménagement d’un accès carrossable en intérieur d’îlot, l’abattage de 2 arbres et les modifications apportées en façade à rue d’un immeuble de rapport">
+
+    <link rel="alternate" hreflang="fr"
+          href="https://openpermits.brussels/fr/_01/PU/1984289">
+    <link rel="alternate" hreflang="nl"
+          href="https://openpermits.brussels/nl/_01/PU/1984289">
+
+
+                <!-- Matomo -->
+        <script>
+            var _paq = window._paq = window._paq || [];
+            /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+            _paq.push(['trackPageView']);
+            _paq.push(['enableLinkTracking']);
+            (function () {
+                var u = "//analytics.urban.brussels/";
+                _paq.push(['setTrackerUrl', u + 'matomo.php']);
+                _paq.push(['setSiteId', '1']);
+                var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+                g.async = true;
+                g.src = u + 'matomo.js';
+                s.parentNode.insertBefore(g, s);
+            })();
+            var website = window.location.hostname;
+            if (website.indexOf('openpermits') === -1 && website.indexOf('127.0.0') === -1) {
+                window.top.location.href = 'https://openpermits.brussels';
+            }
+        </script>
+        <!-- End Matomo Code -->
+
+        <link rel="stylesheet" type="text/css" href="/assets/css/style-JxDDkQe.css">
+
+            <link rel="preload" href="/tiles/4/7/7.webp" as="image" type="image/webp"> <!-- LCP Image -->
+
+                                                                                             <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.0/css/tabulator.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.0/css/tabulator_bootstrap5.min.css"
+          rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.0/js/tabulator.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"
+                integrity="sha512-dUlSLLkxslGILhPdCkALwk4szPhp3xmZIKFtlUD+O9Lslq41Aksmdt5OGqpomDoT4FsCUH70jQU8ezZHI3v1RQ=="
+                crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+        <!-- Make sure you put this AFTER Leaflet's CSS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet-src.min.js"></script>
+
+        <script src='https://cdn.jsdelivr.net/npm/leaflet-fullscreen@1.0.2/dist/Leaflet.fullscreen.min.js'></script>
+    <link href='https://cdn.jsdelivr.net/npm/leaflet-fullscreen@1.0.2/dist/leaflet.fullscreen.min.css'
+          rel='stylesheet'>
+
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js'></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-groupedlayercontrol/0.6.1/leaflet.groupedlayercontrol.min.js"
+                integrity="sha512-cdomNfv1IRJE1v+2/irZdkNU09XwtYP2bQ1qK1ybWF/vz+P3GTMZtrXwlxTU41ExwoWGvEf0njIak5l/ZQaIMA=="
+                crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-groupedlayercontrol/0.6.1/leaflet.groupedlayercontrol.min.css"
+          integrity="sha512-yP7tTm3rX87fOK3iDh9K2RJTHsq6BfGZ8sFqRMIfsmmZVakOw483WyOKlRWVLjHCHEDIcEkp/U+cO3TnZ8oiuw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.82.0/L.Control.Locate.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.82.0/L.Control.Locate.min.js"></script>
+        
+                <style>
+            .tabulator-footer {
+                background-color: white !important;
+            }
+
+            .tabulator {
+                font-size: var(--bs-body-font-size);
+                font-family: var(--bs-body-font-family), serif;
+            }
+
+            .positive_difference {
+                color: green;
+            }
+
+            .negative_difference {
+                color: red;
+            }
+
+            .tabulator-row .tabulator-responsive-collapse table {
+                font-size: 14px !important;
+            }
+
+            .tabulator.table .tabulator-tableholder {
+                overflow-x: hidden;
+            }
+
+            .tabulator.table:hover .tabulator-tableholder:hover {
+                overflow-x: auto;
+            }
+
+            .leaflet-control-locate a.leaflet-bar-part div {
+                background-repeat: no-repeat;
+                background-position: center center;
+                background-size: 26px 26px;
+                width: 32px;
+                height: 30px;
+            }
+
+            .leaflet-control-locate a.leaflet-bar-part div.loading {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30px' height='30px' viewBox='0 0 26 26'%3E%3Cpath fill='%230000FF' d='M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7'/%3E%3C/svg%3E");
+                background-position: center center;
+                background-size: 18px 18px;
+            }
+
+            .leaflet-control-locate a.leaflet-bar-part div.locate {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30px' height='30px' viewBox='0 0 26 26'%3E%3Cpath fill='%23000' d='M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7'/%3E%3C/svg%3E");
+                background-position: center center;
+                background-size: 24px 24px;
+            }
+
+            .nav-link {
+                padding: 12px 15px 12px 0; /* Augmente les zones cliquables */
+                display: inline-block; /* Garantit la bonne mise en page */
+            }
+
+            .nav-item {
+                margin: 4px 8px; /* Ajoute un espacement entre les éléments */
+            }
+
+            .btn-primary-soft {
+                color: #0967e1;
+                background-color: rgba(15, 111, 236, 0.1);
+            }
+
+            .btn-success-soft {
+                color: #04805a;
+                background-color: rgba(12, 188, 135, 0.1);
+            }
+
+            .tabulator-page[data-page='first'], .tabulator-page[data-page='last'] {
+                display: none !important;
+            }
+
+
+            @media print {
+                /* Supprimer les éléments non essentiels */
+                header, footer, nav, .breadcrumb, .main-menu, .locale-switcher, .sidebar,
+                .btn, .print-btn, .share-buttons, .actions, .back-to-top,
+                .footer-links, .legal-links, .external-links,
+                .public-data, .alert, .info, .tabulator-footer, .leaflet-control {
+                    display: none !important;
+                }
+
+                /* Zone de contenu étendue */
+                main, .content, .permit-detail {
+                    width: 97% !important;
+                    margin: 1rem !important;
+                    padding: 0 !important;
+                }
+
+
+                /* Police et style général à l'impression */
+                body {
+                    font-family: "Inter", sans-serif !important;
+                    font-size: 11pt !important;
+                    color: #000 !important;
+                    background: white !important;
+                }
+
+                /* Supprimer les couleurs de fond et ombrages */
+                * {
+                    background: none !important;
+                    box-shadow: none !important;
+                    color-adjust: exact !important;
+                }
+
+                /* Tables propres */
+                table {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                }
+
+                th, td {
+                    border: 1px solid #000 !important;
+                    padding: 4px !important;
+                    vertical-align: top !important;
+                }
+
+                /* Empêcher les coupures mal placées */
+                h1, h2, h3, h4, h5, h6, table, p {
+                    page-break-inside: avoid !important;
+                }
+
+                /* Supprimer les liens imprimés en bas de page */
+                a[href]:after {
+                    content: "" !important;
+                }
+
+                .card {
+                    border: none !important;
+                    box-shadow: none !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+
+                .card-body {
+                    padding: 0 !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                }
+
+                .card-header {
+                    text-align: left !important;
+                    background: none !important;
+                    border: none !important;
+                    padding: 0 !important;
+                    padding-top: 3rem;
+                    font-weight: bold !important;
+                }
+
+            }
+
+            .badge-hover-toggle .badge-details {
+                display: none;
+            }
+
+            .badge-hover-toggle:hover .badge-details {
+                display: flex;
+                align-items: center;
+            }
+
+            .badge-hover-toggle:hover .badge-total {
+                display: none !important;
+            }
+
+            .map-card {
+                position: relative;
+                overflow: hidden;
+                border-radius: 8px 8px 0 0;
+                background: #eee;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            }
+
+            .map-card img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+                filter: saturate(140%) contrast(120%) brightness(105%);
+            }
+
+            /* 3. La Vignette (Ombre sur les bords) */
+            .map-card::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.3) 100%);
+                pointer-events: none;
+                z-index: 1; /* Au-dessus de l'image */
+            }
+        </style>
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:title" content="Demande de permis 01/PU/1984289">
+    <meta name="twitter:description"
+          content="Avenue Victor et Jules Bertaux 56, 1070 Anderlecht.&nbsp;Mettre en conformité les modifications volumétriques en façade arrière (véranda, cour anglaise, fermeture des balcons), l’aménagement du R-1 en loc...">
+            <meta name="twitter:card" content="summary">
+        <meta property="og:image" content="https://geoservices-grid.irisnet.be/geoserver/urbisgrid/ows?SERVICE=WMS&VERSION=2.0.0&REQUEST=GetMap&FORMAT=image%2Fjpeg&TRANSPARENT=false&LAYERS=Ortho&STYLES=&CRS=EPSG%3A31370&WIDTH=400&HEIGHT=400&BBOX=145201.7955%2C169327.24275%2C145260.9875%2C169386.43475">
+        <meta name="twitter:image" content="https://geoservices-grid.irisnet.be/geoserver/urbisgrid/ows?SERVICE=WMS&VERSION=2.0.0&REQUEST=GetMap&FORMAT=image%2Fjpeg&TRANSPARENT=false&LAYERS=Ortho&STYLES=&CRS=EPSG%3A31370&WIDTH=400&HEIGHT=400&BBOX=145201.7955%2C169327.24275%2C145260.9875%2C169386.43475">
+        <meta property="og:image:width" content="400">
+        <meta property="og:image:height" content="400">
+        <!-- Open Graph -->
+    <meta property="og:url"
+          content="https://openpermits.brussels/fr/_01/PU/1984289">
+    <meta property="og:title" content="Demande de permis 01/PU/1984289">
+    <meta property="og:description"
+          content="Avenue Victor et Jules Bertaux 56, 1070 Anderlecht.&nbsp;Mettre en conformité les modifications volumétriques en façade arrière (véranda, cour anglaise, fermeture des balcons), l’aménagement du R-1 en locaux habitables, les constructions de volume en zon...">
+    <link rel="canonical" href="https://openpermits.brussels/fr/_01/PU/1984289">
+    <script type="application/ld+json">{"@context":"https:\/\/schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Openpermits","item":"https:\/\/openpermits.brussels\/"},{"@type":"ListItem","position":2,"name":"Anderlecht","item":"https:\/\/openpermits.brussels\/fr\/authority\/21001"},{"@type":"ListItem","position":3,"name":"Avenue Victor et Jules Bertaux 56","item":"https:\/\/openpermits.brussels\/fr\/_01\/PU\/1984289"}]}</script>
+
+    <style>
+        @media (max-width: 576px) {
+            #photoModal .modal-dialog {
+                max-width: 95%;
+                margin: auto;
+            }
+
+            #photoModal img {
+                max-height: 70vh;
+                width: auto;
+            }
+
+            #photo-spinner {
+                height: 200px;
+            }
+        }
+
+        .icon-top-aligned svg {
+            vertical-align: top;
+        }
+
+        .legal-reference-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .legal-reference-detail {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            z-index: 1050;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            margin-left: 5px;
+            min-width: 300px;
+
+            white-space: normal !important;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .legal-reference-container:hover .legal-reference-detail {
+            display: block;
+        }
+
+        .badge-theme-link {
+            border: 2px solid transparent;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .badge-theme-link:hover {
+            border-color: #0A65DDFF !important;
+        }
+
+        .leaflet-attribution {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            z-index: 2; /* Au-dessus de la vignette ! */
+
+            background: rgba(255, 255, 255, 0.7);
+            color: rgb(0, 120, 168);
+            font-size: 12px;
+            padding: 2px 3px 0px 3px;
+            line-height: 16px;
+            cursor: default;
+        }
+
+        .leaflet-attribution a {
+            color: #0078a8;
+        }
+
+        /* AJOUT CORRECTIF LAYOUT SHIFT */
+        @media (min-width: 992px) {
+            /* Force la ligne à se comporter comme un Flex container immédiatement */
+            .row.g-4 {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            /* Force la largeur des colonnes immédiatement */
+            .col-lg-8 {
+                flex: 0 0 auto;
+                width: 66.666667%;
+            }
+
+            .col-lg-4 {
+                flex: 0 0 auto;
+                width: 33.333333%;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+<script>
+    // Tabulator Functions
+    function dateFormatter(cell, formatterParams, onRendered) {
+        var cellValue = cell.getValue();
+        if (cellValue) {
+            var date = new Date(cellValue);  // On transforme toujours en Date pour garantir que le tri fonctionne
+            // Formater la date au format dd-MM-yyyy pour l'affichage
+            return date.toLocaleDateString("fr-FR", {year: 'numeric', month: '2-digit', day: '2-digit'});
+        }
+        return "";
+    }
+
+    function statusFormatter(cell, formatterParams) {
+        var value = cell.getValue();
+        var translatedValue = getTranslationForPermitStatus(value, 'fr');
+
+        var color = getColorForPermitStatus(value);
+
+        // Retourne la valeur traduite du champ avec le style bold et la couleur
+        return "<span style='font-weight: bold; color:" + color + ";'>" + translatedValue + "</span>";
+    }
+
+    function getColorForPermitStatus(status) {
+        switch (status) {
+            case 'appeal':
+                return '#0b8db7'; // Couleur accessible (info avec plus de contraste)
+            case 'referral':
+                return '#004085'; // Couleur plus sombre entre info et primary pour plus de contraste
+            case 'delivered':
+                return '#0b6623'; // Succès, couleur verte foncée accessible
+            case 'canceled':
+                return '#212529'; // Dark, couleur par défaut avec bon contraste
+            case 'suspended':
+                return '#495057'; // Gris plus foncé pour contraste suffisant
+            case 'instruction':
+                return '#957105'; // Jaune foncé pour un bon contraste (warning)
+            case 'refused':
+                return '#a71d2a'; // Rouge foncé pour le danger, améliorant le contraste
+            case 'undefined':
+                return '#5a6268'; // Secondary, gris plus foncé pour plus de contraste
+            default:
+                return '#000000'; // Noir par défaut
+        }
+    }
+
+    function getTranslationForPermitStatus(status, lang) {
+        const translations = {
+            'appeal': {fr: 'Recours', nl: 'Beroep'},
+            'referral': {fr: 'Saisine', nl: 'Aanhangig'},
+            'delivered': {fr: 'Octroyé', nl: 'Toegekend'},
+            'canceled': {fr: 'Annulé', nl: 'Geannuleerd'},
+            'suspended': {fr: 'Suspendu', nl: 'Opgeschort'},
+            'instruction': {fr: 'Instruction', nl: 'Behandeling'},
+            'refused': {fr: 'Refusé', nl: 'Geweigerd'},
+            'undefined': {fr: 'Indéfini', nl: 'Ongedefinieerd'}
+        };
+
+        if (translations[status] && translations[status][lang]) {
+            return translations[status][lang];
+        } else {
+            return status;
+        }
+    }
+
+    let basePermitUrl = "/fr/_xxx";
+</script>
+    <!-- =======================
+    Header START -->
+    <header class="navbar-light fixed-top header-static bg-mode">
+
+        <!-- Logo Nav START -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <!-- Logo START -->
+                <a class="navbar-brand" href="/">open<span
+                            style="font-weight:700;"
+                            title="Permis d&#039;urbanisme et d&#039;environnement à Bruxelles">permits</span><span
+                            style="color:#1572ec; font-weight: 400;">.brussels</span></a>
+                <!-- Logo END -->
+
+                <!-- Responsive navbar toggler -->
+                <button class="navbar-toggler ms-auto icon-md btn btn-light p-0" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false"
+                        aria-label="Toggle navigation">
+        <span class="navbar-toggler-animation">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+                </button>
+
+                <!-- Main navbar START -->
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+
+                    <ul class="navbar-nav navbar-nav-scroll ms-auto px-1">
+                        <!-- Nav item 4 Mega menu -->
+                        <li class="nav-item">
+                            <form class="rounded position-relative" action="/search"
+                                  method="post" style="padding-right:1rem;">
+                                <input class="form-control ps-5 bg-light" type="search" name="search"
+                                       placeholder="Adresse ou référence"
+                                       aria-label="Recherche">
+                                <button class="btn bg-transparent px-2 py-0 position-absolute top-50 start-0 translate-middle-y"
+                                        type="submit" id="search" aria-label="Recherche">
+                                    <svg width="1.1rem" height="1.1rem" viewBox="0 0 16 16" fill="currentColor" color="#1572ec" aria-hidden="true"><path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0"></path></svg>
+                                </button>
+                            </form>
+                        </li>
+                        <li class="nav-item">
+                            <div class="btn-group">
+                                <a href="/fr/_01/PU/1984289"
+                                   role="button"
+                                   class="btn rounded-0 btn-primary"
+                                   title="En français">FR</a>
+                                <a href="/nl/_01/PU/1984289"
+                                   role="button"
+                                   class="btn rounded-0 btn-primary-soft"
+                                   title="En néerlandais">NL</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Main navbar END -->
+            </div>
+        </nav>
+        <!-- Logo Nav END -->
+    </header>
+    <!-- =======================
+    Header END -->
+
+<!-- **************** MAIN CONTENT START **************** -->
+<main>
+        <!-- Container START -->
+    <div class="container">
+        <div class="row g-4">
+
+            <!-- Main content START -->
+            <div class="col-lg-8 vstack gap-4">
+                <!-- Share feed START -->
+                <div class="card card-body">
+                    <div class="card-header border-0 pb-2 d-sm-flex justify-content-between">
+                        <h1 class="card-title">
+                            Avenue Victor et Jules Bertaux 56<br>1070 Anderlecht
+                        </h1>
+                        <span class="position-absolute top-0 translate-middle-y badge bg-primary fw-normal p-2">Enquête publique en cours</span>
+                        <button class="btn btn-sm btn-warning" style="max-height: 36px; width:140px;" title="Statut de la demande: instruction">Instruction</button>
+                    </div>
+                    <!-- Card body START -->
+                    <div class="card-body position-relative pt-0 permit-details">
+                          <style>
+    del {
+        color: #d9534f; /* Rouge pour les suppressions */
+        text-decoration: none;
+        background-color: #f9d6d5; /* Fond rose pâle pour attirer l'attention */
+        border: 1px solid #f5b4b4; /* Bordure légère */
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+
+    ins {
+        color: #5cb85c; /* Vert pour les ajouts */
+        text-decoration: none;
+        background-color: #d4f8d4; /* Fond vert pâle */
+        border: 1px solid #b2e8b2; /* Bordure légère */
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+
+    del:hover, ins:hover {
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* Met en avant au survol */
+    }
+
+    .btn-outline-primary {
+        border: none; /* Supprime les bordures */
+        box-shadow: none; /* Supprime les ombres */
+        background-color: transparent; /* Assure un fond transparent */
+        border-radius: 0;
+        border-top: 2px solid rgba(15, 111, 236, 0.1);
+        margin-top: 1.5rem;
+    }
+
+    .btn-group .btn-check:checked + .btn {
+        background-color: rgba(15, 111, 236, 0.1);
+        color: rgb(15, 111, 236);
+        border-top: 2px solid rgb(9, 119, 68);
+    }
+
+    .btn-group .btn-check:checked + .btn:hover {
+        background-color: rgba(15, 111, 236, 0.1);
+        color: rgb(15, 111, 236);
+        border-top: 2px solid rgb(9, 119, 68);
+
+    }
+
+    blockquote {
+        background-color: #fff3cd;
+        border-left: 5px solid #ffc107;
+        color: #4e3b03;
+        padding: 0 15px 0 15px;
+        margin: 5px 0;
+        border-radius: 4px;
+        font-style: italic;
+    }
+
+    blockquote p {
+        margin-bottom: 0;
+    }
+
+</style>
+
+
+<div>
+    <div>
+        <p id="description-case" class="text-secondary" style="display: none;">Mettre en conformité les modifications volumétriques en façade arrière (véranda, cour anglaise, fermeture des balcons), l’aménagement du R-1 en locaux habitables, les constructions de volume en zone de cour et jardin (carport, pergolas), l’aménagement d’un accès carrossable en intérieur d’îlot, l’abattage de 2 arbres et les modifications apportées en façade à rue d’un immeuble de rapport</p>
+        <p id="description-permit" class="text-secondary"
+           style="display: none;"></p>
+        <p id="description-diff" class="text-secondary" style="display: none;"><del>Mettre en conformit&eacute; les modifications volum&eacute;triques en fa&ccedil;ade arri&egrave;re (v&eacute;randa, cour anglaise, fermeture des balcons), l&rsquo;am&eacute;nagement du R-1 en locaux habitables, les constructions de volume en zone de cour et jardin (carport, pergolas), l&rsquo;am&eacute;nagement d&rsquo;un acc&egrave;s carrossable en int&eacute;rieur d&rsquo;&icirc;lot, l&rsquo;abattage de 2 arbres et les modifications apport&eacute;es en fa&ccedil;ade &agrave; rue d&rsquo;un immeuble de rapport</del></p>
+    </div>
+
+            <div class="text-secondary">
+            <p>Mettre en conformité les modifications volumétriques en façade arrière (véranda, cour anglaise, fermeture des balcons), l’aménagement du R-1 en locaux habitables, les constructions de volume en zone de cour et jardin (carport, pergolas), l’aménagement d’un accès carrossable en intérieur d’îlot, l’abattage de 2 arbres et les modifications apportées en façade à rue d’un immeuble de rapport</p><br />
+
+        </div>
+    
+
+</div>
+
+
+<script>
+    function showDescription(type) {
+        const descriptions = ['case', 'permit', 'diff'];
+        descriptions.forEach(desc => {
+            document.getElementById(`description-${desc}`).style.display = (desc === type) ? 'block' : 'none';
+        });
+    }
+</script>
+
+
+                        <span class="badge text-bg-light p-sm-2 badge-theme-link">
+                            <a href="/fr/authority/21001"
+                               title="Commune" style="color:rgb(10, 101, 221);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1rem" height="1rem" viewBox="0 0 24 24"><g
+                                            fill="none"><path stroke="currentColor" stroke-width="1.5"
+                                                              d="M17 22v-6c0-1.886 0-2.828-.586-3.414S14.886 12 13 12h-2c-1.886 0-2.828 0-3.414.586S7 14.114 7 16v6"/><path
+                                                stroke="currentColor" stroke-width="1.5"
+                                                d="M21 22V7.772c0-1.34 0-2.011-.356-2.525s-.984-.75-2.24-1.22c-2.455-.921-3.682-1.381-4.543-.785C13 3.84 13 5.15 13 7.772V12"
+                                                opacity=".5"/><path fill="currentColor"
+                                                                    d="M3.25 8a.75.75 0 0 0 1.5 0zm6 0a.75.75 0 0 0 1.5 0zm.457-3.207l-.53.53zM6.25 4a.75.75 0 0 0 1.5 0zm1.5-2a.75.75 0 0 0-1.5 0zm-4 20V12h-1.5v10zM7 8.75c.964 0 1.612.002 2.095.067c.461.062.659.169.789.3l1.06-1.062c-.455-.455-1.022-.64-1.65-.725c-.606-.082-1.372-.08-2.294-.08zM11.75 12c0-.922.002-1.688-.08-2.294c-.084-.628-.27-1.195-.726-1.65l-1.06 1.06c.13.13.237.328.3.79c.064.482.066 1.13.066 2.094zM7 7.25c-.922 0-1.688-.002-2.294.08c-.628.084-1.195.27-1.65.725l1.06 1.061c.13-.13.328-.237.79-.3c.482-.064 1.13-.066 2.094-.066zM3.75 12c0-.964.002-1.612.067-2.095c.062-.461.169-.659.3-.789l-1.062-1.06c-.455.455-.64 1.022-.725 1.65c-.082.606-.08 1.372-.08 2.294zm1-4V6.5h-1.5V8zM6 5.25h2v-1.5H6zM9.25 6.5V8h1.5V6.5zM8 5.25c.493 0 .787.002.997.03a.7.7 0 0 1 .18.043l1.06-1.06c-.309-.31-.684-.422-1.04-.47C8.863 3.748 8.45 3.75 8 3.75zm2.75 1.25c0-.45.002-.863-.043-1.197c-.048-.356-.16-.731-.47-1.04l-1.06 1.06l.001.003l.005.01c.009.022.024.07.037.167c.028.21.03.504.03.997zm-6 0c0-.493.002-.787.03-.997a.7.7 0 0 1 .043-.18l-1.06-1.06c-.31.309-.422.684-.47 1.04c-.045.334-.043.747-.043 1.197zM6 3.75c-.45 0-.863-.002-1.197.043c-.356.048-.731.16-1.04.47l1.06 1.06l.003-.001l.01-.005a.7.7 0 0 1 .167-.037c.21-.028.504-.03.997-.03zM7.75 4V2h-1.5v2z"
+                                                                    opacity=".5"/><path stroke="currentColor"
+                                                                                        stroke-linecap="round"
+                                                                                        stroke-width="1.5"
+                                                                                        d="M22 22H2"/><path
+                                                stroke="currentColor" stroke-linecap="round" stroke-width="1.5"
+                                                d="M10 15h4m-4 3h4"
+                                                opacity=".5"/></g></svg> Anderlecht
+                            </a>
+                        </span>
+
+                        
+                                                
+                        
+                        
+                        
+                                                    <span class="badge text-bg-light p-sm-2 badge-theme-link">
+                                <a href="/fr/theme/tree_cutting/2025"
+                                   title="Demandes de permis avec abattage d&#039;arbres">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1rem" height="1rem"
+                                         viewBox="0 0 256 256"><g fill="currentColor"><path
+                                                    d="M232 127.82c.09 33.94-28.41 63.3-62.34 64.16a63.72 63.72 0 0 1-41.66-14a63.7 63.7 0 0 1-41.65 14c-33.93-.86-62.44-30.22-62.35-64.16a64 64 0 0 1 40.13-59.2a68 68 0 0 1 127.74 0a64 64 0 0 1 40.13 59.2"
+                                                    opacity=".2"/><path
+                                                    d="M198.1 62.59a76 76 0 0 0-140.2 0A71.71 71.71 0 0 0 16 127.8C15.9 166 48 199 86.14 200a72.2 72.2 0 0 0 33.86-7.53V232a8 8 0 0 0 16 0v-39.53a72.2 72.2 0 0 0 32 7.53h1.82c38.18-1 70.29-34 70.18-72.2a71.71 71.71 0 0 0-41.9-65.21M169.45 184A56.08 56.08 0 0 1 136 174v-41l43.58-21.78a8 8 0 1 0-7.16-14.32L136 115.06V88a8 8 0 0 0-16 0v51.06l-36.42-18.22a8 8 0 1 0-7.16 14.32L120 156.94v17a56 56 0 0 1-33.45 10c-29.65-.71-54.63-26.42-54.55-56.1A55.79 55.79 0 0 1 67.11 76a8 8 0 0 0 4.53-4.67a60 60 0 0 1 112.72 0a8 8 0 0 0 4.53 4.67A55.79 55.79 0 0 1 224 127.84c.08 29.68-24.9 55.39-54.55 56.16"/></g></svg> 2
+                                                                            arbres à abattre
+                                    </a>
+                            </span>
+                                                
+                        <div id="floorArea">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="badge text-bg-light p-sm-2 badge-theme-link"
+                                              style="margin-top:5px;">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                 viewBox="0 0 24 24"><path
+                                                        fill="#008000"
+                                                        d="M3 19h18a1.002 1.002 0 0 0 .823-1.569l-9-13c-.373-.539-1.271-.539-1.645 0l-9 13A.999.999 0 0 0 3 19"/></svg>
+                                                                             <a href="/fr/theme/floor_difference:housing/2025">Logement</a>
+                        </span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <span class="badge text-bg-light p-sm-2 badge-theme-link"
+                                              style="margin-top:5px;">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                 viewBox="0 0 24 24"><path
+                                                        fill="#008000"
+                                                        d="M3 19h18a1.002 1.002 0 0 0 .823-1.569l-9-13c-.373-.539-1.271-.539-1.645 0l-9 13A.999.999 0 0 0 3 19"/></svg>
+                                                                             <a href="/fr/theme/floor_difference:others/2025">Autres</a>
+                        </span>
+                                                                                                                                                                                                                                                                            <span class="badge text-bg-light p-sm-2 badge-theme-link"
+                                              style="margin-top:5px;">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                 viewBox="0 0 24 24"><path
+                                                        fill="#008000"
+                                                        d="M3 19h18a1.002 1.002 0 0 0 .823-1.569l-9-13c-.373-.539-1.271-.539-1.645 0l-9 13A.999.999 0 0 0 3 19"/></svg>
+                                                                             <a href="/fr/theme/floor_difference:storage/2025">Dépôt / entreposage</a>
+                        </span>
+                                                                                                                                                                                                                                                                            <span class="badge text-bg-light p-sm-2 badge-theme-link"
+                                              style="margin-top:5px;">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                                 viewBox="0 0 24 24"><path fill="#D22B2B"
+                                                                           d="M11.178 19.569a.998.998 0 0 0 1.644 0l9-13A.999.999 0 0 0 21 5H3a1.002 1.002 0 0 0-.822 1.569z"/></svg>                                     <a href="/fr/theme/floor_difference:trade/2025">Commerce</a>
+                        </span>
+                                                                                                                                                                                                                                                    </div>
+
+                    </div>
+                    <!-- Card body END -->
+                </div>
+                <!-- Share feed END -->
+
+                                    <!-- Card START -->
+                    <div class="card card-body">
+                        <div class="card-header d-sm-flex justify-content-between border-0">
+                            <h3 class="card-title">Base légale</h3>
+                        </div>
+                        <div class="card-body position-relative pt-0">
+                            <div class="row g-0 row-cols-1">
+                                                                    <div class="d-flex align-items-start mb-2">
+
+                                        <span class="legal-reference-container me-2">
+
+                        <span class="text-primary fs-5 icon-top-aligned">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24"><path
+                                        fill="currentColor"
+                                        d="M12 3c-1.27 0-2.4.8-2.82 2H3v2h1.95L2 14c-.47 2 1 3 3.5 3s4.06-1 3.5-3L6.05 7h3.12c.33.85.98 1.5 1.83 1.83V20H2v2h20v-2h-9V8.82c.85-.32 1.5-.97 1.82-1.82h3.13L15 14c-.47 2 1 3 3.5 3s4.06-1 3.5-3l-2.95-7H21V5h-6.17C14.4 3.8 13.27 3 12 3m0 2a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1m-6.5 5.25L7 14H4zm13 0L20 14h-3z"/></svg>
+                        </span>
+
+                        <span class="legal-reference-detail text-nowrap p-2 shadow rounded">
+                            cfr chap. II et chap. III, section 1, sous-section 1 de l’arrêté
+                        </span>
+
+                    </span>
+
+                                        <span class="flex-grow-1">Construire, reconstruire, transformer et/ou placer une installation fixe avec l&#039;intervention obligatoire d&#039;un architecte</span>
+
+                                    </div>
+                                                            </div>
+                        </div>
+                    </div>
+                    <!-- Card END -->
+                
+                
+    <!-- Card feed item START -->
+    <div class="card card-body border border-2 border-primary border-dashed">
+        <!-- Card header START -->
+        <div class="card-header border-0 pb-0">
+            <h3 class="card-title">
+                Enquête publique
+            </h3>
+            <p class="mb-0">
+                du jeudi 16 avril 2026 au jeudi 30 avril 2026
+                <!-- ugly fallback (bug in Twig Translation with placeholders ?) -->
+            </p>
+        </div>
+        <!-- Card header END -->
+        <!-- Card body START -->
+        <div class="card-body">
+                                                <div class="d-grid mt-3">
+        <a class="btn btn-primary py-2" href="https://share.urban.brussels/y/s/H4oEjybw54T6Fj2">Documents disponibles ici</a>
+    </div>
+
+
+    
+
+
+                <div class="d-grid mt-3">
+                                            <a class="btn btn-primary-soft"
+                           href="/fr/_01/PU/1984289/reaction"
+                           rel="noindex, nofollow">Possibilité de réagir auprès de la commune via ce formulaire</a>
+                                    </div>
+
+                    </div>
+                    <div class="card-footer border-0 pt-0">
+                <p class="small mb-0 py-3">
+                    Dispositions disponibles sur le site Web de la commune ou sur les panneaux d&#039;enquête publique. Toute réclamation concernant le dossier qui ne serait pas déposée auprès de l&#039;administration communale ne pourra être prise en compte
+                </p>
+            </div>
+            </div>
+    <!-- Card feed item END -->
+
+
+                
+                                    <!-- Card feed item START -->
+<div class="card card-body border border-2">
+    <!-- Card header START -->
+    <div class="card-header border-0 pb-0">
+        <h3 class="card-title">
+                            Instances d&#039;avis
+                    </h3>
+    </div>
+    <!-- Card header END -->
+    <!-- Card body START -->
+    <div class="card-body">
+                    <ul class="list-group list-group-flush gx-2">
+                                    <li class="list-group-item text-secondary px-0">
+                        <strong>
+                                                            Fonctionnaire délégué
+                                                    </strong>
+                        
+                        
+                                                    <p class="mb-0 small">Autorité régionale compétente pour délivrer des permis d&#039;urbanisme en Région bruxelloise.</p>
+                        
+                                                                    </li>
+                                    <li class="list-group-item text-secondary px-0">
+                        <strong>
+                                                            Commission de concertation
+                                                    </strong>
+                        
+                        
+                                                    <p class="mb-0 small">Commission locale chargée d’examiner les demandes de permis et de rendre des avis consultatifs.</p>
+                        
+                                                                    </li>
+                                    <li class="list-group-item text-secondary px-0">
+                        <strong>
+                                                            <a href="/fr/theme/instance:SIAMU/2025"
+                                   rel="noindex, nofollow">
+                                    SIAMU
+                                </a>
+                                                    </strong>
+                        
+                        
+                                                    <p class="mb-0 small">Service d&#039;incendie et d&#039;aide médicale urgente de la Région bruxelloise.</p>
+                        
+                                                                    </li>
+                            </ul>
+            </div>
+</div>
+<!-- Card feed item END -->
+                
+                
+                    <!-- Card feed item START -->
+    <div class="card card-body">
+        <!-- Card header START -->
+        <div class="card-header border-0 pb-0">
+            <h5 class="card-title">
+                Modifications des superficies plancher
+            </h5>
+        </div>
+        <!-- Card header END -->
+        <!-- Card body START -->
+        <div class="card-body">
+
+            <table class="table table-sm table-borderless table-hover">
+                <thead class="thead-light">
+                <tr>
+                    <th>Affectation</th>
+                    <th class="text-end">Existant</th>
+                    <th class="text-end">Projeté</th>
+                    <th class="text-end">Autorisé</th>
+                    <th class="text-end">Différence</th>
+                </tr>
+                </thead>
+                <tbody>
+                                                                                                                                                                                                                                                                                                                                        <tr>
+                            <td>
+                                <a href="/fr/theme/floor_difference:housing/2025">Logement</a>
+                            </td>
+                            <td class="text-end">
+                                                                    425&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    549&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    -
+                                                            </td>
+                            <td class="text-end" style="color: green;">
+                                                                    124&nbsp;m²
+                                                            </td>
+                        </tr>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <tr>
+                            <td>
+                                <a href="/fr/theme/floor_difference:others/2025">Autres</a>
+                            </td>
+                            <td class="text-end">
+                                                                    0&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    96&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    -
+                                                            </td>
+                            <td class="text-end" style="color: green;">
+                                                                    96&nbsp;m²
+                                                            </td>
+                        </tr>
+
+                                                                                                                                                <tr>
+                            <td>
+                                <a href="/fr/theme/floor_difference:storage/2025">Dépôt / entreposage</a>
+                            </td>
+                            <td class="text-end">
+                                                                    0&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    100&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    -
+                                                            </td>
+                            <td class="text-end" style="color: green;">
+                                                                    100&nbsp;m²
+                                                            </td>
+                        </tr>
+
+                                                                                                                                                <tr>
+                            <td>
+                                <a href="/fr/theme/floor_difference:trade/2025">Commerce</a>
+                            </td>
+                            <td class="text-end">
+                                                                    68&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    0&nbsp;m²
+                                                            </td>
+                            <td class="text-end">
+                                                                    -
+                                                            </td>
+                            <td class="text-end" style="color: red;">
+                                                                    -68&nbsp;m²
+                                                            </td>
+                        </tr>
+
+                                                                                                                                                        </tbody>
+            </table>
+
+        </div>
+        <!-- Card body END -->
+    </div>
+    <!-- Card feed item END -->
+
+
+
+                <!-- Card feed item START -->
+                <div class="card card-body">
+                    <!-- Card header START -->
+                    <div class="card-header border-0 pb-0">
+                        <h3 class="card-title">
+                            Historique des demandes
+                        </h3>
+                        <p>Demandes de permis à la localisation similaire, depuis
+                            1970.</p>
+                    </div>
+                    <!-- Card header END -->
+                    <!-- Card body START -->
+                    <div class="card-body">
+                                                    <div class="table table-sm" id="history-table"></div>
+
+    
+<script>
+    let tabledatahistory = [{"caseStatus":"refused","caseIdentifier":1260443,"novaReference":"PU\/334883","mainMunicipalityReference":"45799-RPU","novaSequence":334883,"uuid":"19cb3dd1-57c5-478a-aef0-089fd3e83d56","caseVersion":1,"addressFr":"Avenue Victor et Jules Bertaux 56","addressNl":"Victor en Jules Bertauxlaan 56","zipcode":1070,"caseType":"PU","caseSubType":"Permis d'urbanisme priv\u00e9","isMixedCase":false,"mixedCaseReference":null,"municipalityFr":"Anderlecht","municipalityNl":"Anderlecht","procedureType":"U","events":{"submission":"2007-05-09 00:00:00","notification":"2007-09-25 00:00:00","inquiry":null,"sending":null,"additional_elements":null,"arc":null,"arc_modified_project":null,"ari":null,"consultation_commission":null,"official_responsible_opinion":null,"implementation_theorical":null,"implementation":null,"siamu_opinion":null,"validity":null},"caseLanguage":"FR","hasImpactReport":false,"hasImpactStudy":false,"cutTreesNumber":null,"modifiedTreesNumber":null,"siamuOpinionDuration":null,"siamuOpinionDelay":0,"instructionGlobalDuration":null,"suspensionDuration":null,"floorArea":{"artisanalActivities":{"typology":"artisanalActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"equipment":{"typology":"equipment","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"highTechActivities":{"typology":"highTechActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"housing":{"typology":"housing","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"hotel":{"typology":"hotel","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"immaterialGoodsActivities":{"typology":"immaterialGoodsActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"industrialActivities":{"typology":"industrialActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"largeSpecializedTrade":{"typology":"largeSpecializedTrade","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"logisticActivities":{"typology":"logisticActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"materialServicesActivities":{"typology":"materialServicesActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"office":{"typology":"office","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"others":{"typology":"others","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"storage":{"typology":"storage","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"trade":{"typology":"trade","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"wholesale":{"typology":"wholesale","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}}},"hasFloorArea":false,"floorDifference":{"artisanalActivities":null,"equipment":null,"highTechActivities":null,"housing":null,"hotel":null,"immaterialGoodsActivities":null,"industrialActivities":null,"largeSpecializedTrade":null,"logisticActivities":null,"materialServicesActivities":null,"office":null,"others":null,"storage":null,"trade":null,"wholesale":null},"hasLimitedValidity":false,"managingAuthority":"Anderlecht","hasTownPlanningCharges":false,"deliveredPermitTotalCharges":0,"submissionType":"Autre","workDurationInMonth":null,"geometry":"{\"type\":\"Polygon\",\"coordinates\":[[[145225.517,169349.151],[145225.95,169349.394],[145222.104,169356.874],[145219.006,169354.869],[145206.795,169346.968],[145206.968,169346.7],[145210.45,169340.683],[145225.517,169349.151]]]}","suspensions":[],"errorsFr":"","errorsNl":"","errorsWeight":0,"caseDescriptionFr":"Reconstruction d'une v\u00e9randa","caseDescriptionNl":"Herbouwing van een veranda","permitDescriptionFr":null,"permitDescriptionNl":null,"scopes":[],"charges":null,"inquiryStartDate":null,"inquiryEndDate":null},{"caseStatus":"instruction","caseIdentifier":1259169,"novaReference":"PU\/333609","mainMunicipalityReference":"44525-","novaSequence":333609,"uuid":"cbf9b0bc-1049-4a13-b1b9-ed406ada960f","caseVersion":1,"addressFr":"Avenue Victor et Jules Bertaux 56","addressNl":"Victor en Jules Bertauxlaan 56","zipcode":1070,"caseType":"PU","caseSubType":"Permis d'urbanisme priv\u00e9","isMixedCase":false,"mixedCaseReference":null,"municipalityFr":"Anderlecht","municipalityNl":"Anderlecht","procedureType":"U","events":{"submission":"2003-10-01 00:00:00","inquiry":"2003-10-20 00:00:00 - 2003-11-03 23:59:59","consultation_commission":"2003-11-12 00:00:00","sending":null,"additional_elements":null,"arc":null,"arc_modified_project":null,"ari":null,"notification":null,"official_responsible_opinion":null,"implementation_theorical":null,"implementation":null,"siamu_opinion":null,"validity":null},"caseLanguage":"FR","hasImpactReport":false,"hasImpactStudy":false,"cutTreesNumber":null,"modifiedTreesNumber":null,"siamuOpinionDuration":null,"siamuOpinionDelay":0,"instructionGlobalDuration":null,"suspensionDuration":null,"floorArea":{"artisanalActivities":{"typology":"artisanalActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"equipment":{"typology":"equipment","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"highTechActivities":{"typology":"highTechActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"housing":{"typology":"housing","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"hotel":{"typology":"hotel","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"immaterialGoodsActivities":{"typology":"immaterialGoodsActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"industrialActivities":{"typology":"industrialActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"largeSpecializedTrade":{"typology":"largeSpecializedTrade","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"logisticActivities":{"typology":"logisticActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"materialServicesActivities":{"typology":"materialServicesActivities","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"office":{"typology":"office","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"others":{"typology":"others","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"storage":{"typology":"storage","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"trade":{"typology":"trade","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}},"wholesale":{"typology":"wholesale","floorArea":{"existing":null,"projected":null,"authorized":null,"difference":null}}},"hasFloorArea":false,"floorDifference":{"artisanalActivities":null,"equipment":null,"highTechActivities":null,"housing":null,"hotel":null,"immaterialGoodsActivities":null,"industrialActivities":null,"largeSpecializedTrade":null,"logisticActivities":null,"materialServicesActivities":null,"office":null,"others":null,"storage":null,"trade":null,"wholesale":null},"hasLimitedValidity":false,"managingAuthority":"Anderlecht","hasTownPlanningCharges":false,"deliveredPermitTotalCharges":0,"submissionType":"Autre","workDurationInMonth":null,"geometry":"{\"type\":\"Polygon\",\"coordinates\":[[[145225.517,169349.151],[145225.95,169349.394],[145222.104,169356.874],[145219.006,169354.869],[145206.795,169346.968],[145206.968,169346.7],[145210.45,169340.683],[145225.517,169349.151]]]}","suspensions":[],"errorsFr":"","errorsNl":"","errorsWeight":0,"caseDescriptionFr":"Reconstruire une v\u00e9randa","caseDescriptionNl":"Heropbouwen van een veranda","permitDescriptionFr":null,"permitDescriptionNl":null,"scopes":[],"charges":null,"inquiryStartDate":"2003-10-20 00:00:00","inquiryEndDate":"2003-11-03 23:59:59"}];
+
+    let table_history = new Tabulator("#history-table", {
+        data: tabledatahistory,
+        layout: "fitColumns",
+        responsiveLayout: "collapse",
+        pagination: "local",       // paginate the data
+        paginationSize: 10,         // allowed rows per page of data
+        paginationCounter: "rows",
+        locale: 'fr',
+        langs: {
+            "fr": { // French language definition
+                "pagination": {
+                    "first": "Premier",
+                    "first_title": "Première page",
+                    "last": "Dernier",
+                    "last_title": "Dernière page",
+                    "prev": "Précédent",
+                    "prev_title": "Page précédente",
+                    "next": "Suivant",
+                    "next_title": "Page suivante",
+                    "all": "Toutes",
+                    "counter": {
+                        "showing": "",
+                        "of": "sur",
+                        "rows": "",
+                        "pages": "Pages",
+                    }
+                },
+            },
+        },
+        initialSort: [
+            {
+                column: "events.submission",
+                dir: "desc"
+            },
+        ],
+        columns: [
+            
+            {
+                title: "Référence",
+                minWidth: 150,
+                field: "novaReference",
+                responsive: 1,
+                sorter: "string",
+                formatter: function (cell, formatterParams, onRendered) {
+                    let data = cell.getRow().getData();
+                    let iconColor = data.caseType === 'PE' ? '#10ac10' : '#0d6efd';
+                    let ref = '';
+                                        ref += '<a href="' + basePermitUrl.replace('xxx', data.novaReference) + '">' + data.novaReference + '</a>';
+                    ref += (data.errorsFr === undefined || data.errorsFr === '') ? '' : '&nbsp;<span title="' + data.errorsFr + '"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" style="color:#dc3545;" aria-hidden="true"><path fill="currentColor" d="m21.86 17.249l-7.61-13.19a2.65 2.65 0 0 0-4.57 0l-7.61 13.19a2.6 2.6 0 0 0 0 2.64a2.6 2.6 0 0 0 1 1a2.67 2.67 0 0 0 1.32.36h15.23a2.67 2.67 0 0 0 1.32-.35a2.6 2.6 0 0 0 1-1c.23-.402.35-.857.35-1.32s-.12-.814-.35-1.216zm-10.9-9.7a1 1 0 1 1 2 0v6.28a1 1 0 0 1-2 0zm1.05 11a1.25 1.25 0 1 1 .471-.092a1.3 1.3 0 0 1-.481.092z"></path></svg></span>';
+                    return ref;
+                }
+            },
+                                                            {
+                title: "Dépôt",
+                field: "events.submission",
+                hozAlign: "right",
+                sorter: "date",  // Tri en utilisant des objets Date natifs
+                minWidth: 130,
+                responsive: 5,
+                sorterParams: {
+                    format: "yyyy-MM-dd HH:mm:ss",  // Le format original des données JSON pour le tri
+                    alignEmptyValues: "bottom"
+                },
+                formatter: dateFormatter
+            },
+                                    {
+                title: "Décision",
+                field: "events.notification",
+                hozAlign: "right",
+                sorter: "date",  // Tri en utilisant des objets Date natifs
+                minWidth: 110,
+                responsive: 5,
+                sorterParams: {
+                    format: "yyyy-MM-dd HH:mm:ss",  // Le format original des données JSON pour le tri
+                    alignEmptyValues: "bottom"
+                },
+                formatter: dateFormatter
+            },
+                                    {
+                title: "Statut", field: "caseStatus", sorter: "string",
+                minWidth: 50,
+                responsive: 4,
+                hozAlign: "right",
+                formatter: statusFormatter
+            },
+                                                
+        ],
+    });
+
+    // Amélioration ARIA après initialisation de Tabulator
+    table_history.on("tableBuilt", function () {
+        const tableElement = document.querySelector("#history-table");
+
+        // 1. Donner le rôle grid aux lignes et aux cellules
+        tableElement.querySelectorAll(".tabulator-row").forEach(row => {
+            row.setAttribute("role", "row");
+            row.querySelectorAll(".tabulator-cell").forEach(cell => {
+                cell.setAttribute("role", "gridcell");
+            });
+        });
+
+        // 2. Corriger les en-têtes
+        const headers = tableElement.querySelectorAll(".tabulator-header .tabulator-col");
+        headers.forEach(header => {
+            header.setAttribute("role", "columnheader");
+        });
+
+        // 3. Supprimer les imbriquements inutiles ou incorrects de rowgroup
+        tableElement.querySelectorAll(".tabulator-header-contents[role=rowgroup]").forEach(group => {
+            group.removeAttribute("role");
+        });
+    });
+
+    function dateFormatter(cell, formatterParams, onRendered) {
+        var cellValue = cell.getValue();
+        if (cellValue) {
+            var date = new Date(cellValue);  // On transforme toujours en Date pour garantir que le tri fonctionne
+            // Formater la date au format dd-MM-yyyy pour l'affichage
+            return date.toLocaleDateString("fr-FR", {year: 'numeric', month: '2-digit', day: '2-digit'});
+        }
+        return "";
+    }
+</script>
+
+<button class="btn btn-sm btn-outline-primary"
+        id="fetchData">Afficher les parcelles cadastrales concernées</button>
+<div id="result" class="text-primary pt-1" style="display:none;"></div>
+
+<script>
+    const button = document.getElementById('fetchData');
+    const resultDiv = document.getElementById('result');
+    let dataLoaded = false;
+
+    button.addEventListener('click', function () {
+        if (dataLoaded && resultDiv.style.display === 'none') {
+            // Afficher les données si déjà chargées mais masquées
+            resultDiv.style.display = 'block';
+            button.textContent = 'Masquer les parcelles cadastrales concernées';
+        } else if (dataLoaded && resultDiv.style.display === 'block') {
+            // Masquer les données si elles sont affichées
+            resultDiv.style.display = 'none';
+            button.textContent = 'Afficher les parcelles cadastrales concernées';
+        } else {
+            // Charger les données si elles ne sont pas encore chargées
+            const url = 'https://geoservices-urbis.irisnet.be/geoserver/UrbisAdm/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=UrbisAdm:Capa&outputFormat=application/json&srsName=EPSG:4326&propertyname=CAPA_CAPAKEY&cql_filter=INTERSECTS(GEOM,POLYGON ((145225.9504 169349.3943, 145225.5175 169349.1512, 145210.4935 169340.7073, 145206.9683 169346.7002, 145206.7955 169346.9682, 145219.0064 169354.8692, 145222.1045 169356.8742, 145223.6175 169357.8532, 145246.9804 169372.9702, 145254.8195 169371.1953, 145255.9875 169370.9312, 145255.3975 169368.5313, 145254.9935 169366.8872, 145252.3213 169356.0092, 145244.5114 169351.7303, 145242.1645 169356.0143, 145241.1204 169357.9202, 145234.0814 169353.9642, 145225.9504 169349.3943)))';
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Réponse de réseau non OK');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const parcelles = data.features.map(feature => feature.properties.CAPA_CAPAKEY);
+                    resultDiv.textContent = parcelles.join(', ');
+                    resultDiv.style.display = 'block';
+                    button.textContent = 'Masquer les parcelles cadastrales concernées';
+                    dataLoaded = true; // Marquer les données comme chargées
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des données:', error);
+                    resultDiv.textContent = 'Erreur de chargement des données.';
+                    resultDiv.style.display = 'block';
+                });
+        }
+    });
+</script>
+                                            </div>
+                    <!-- Card body END -->
+                </div>
+                <!-- Card feed item END -->
+
+
+                
+
+                <!-- Card feed item START -->
+                <div class="card card-body">
+                    <!-- Card header START -->
+                    <div class="card-header border-0 pb-0">
+                        <h3 class="card-title">
+                            Ligne du temps
+                        </h3>
+                    </div>
+                    <!-- Card header END -->
+                    <!-- Card body START -->
+                    <div class="card-body">
+                                                    <script type="text/javascript"
+        src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet"
+      type="text/css"/>
+
+<style>
+    #timeline-visualization {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        background-color: #fff;
+        min-height: 140px;
+    }
+
+    .vis-item {
+        border-color: transparent;
+        color: white;
+        font-family: "Inter", sans-serif;
+        font-size: 0.85rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        z-index: 110 !important; /* Passe au-dessus de la ligne "Aujourd'hui" */
+    }
+
+    .vis-item .vis-item-content {
+        padding: 4px 8px; /* Un peu plus d'espace interne */
+    }
+
+    .vis-current-time {
+        background-color: #990099;
+        width: 2px;
+        z-index: 100 !important;
+    }
+
+    .vis-tooltip {
+        color: #333;
+        background-color: #fff;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        font-family: "Inter", sans-serif !important;
+        font-size: 13px;
+        padding: 8px 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10000 !important;
+    }
+</style>
+
+<div id="timeline-visualization"></div>
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        var container = document.getElementById('timeline-visualization');
+
+        /* --- Calcul des bornes --- */
+                
+                                                
+                
+        /* --- Données --- */
+        var items = new vis.DataSet([
+                        
+                        
+            {
+                id: 1,
+                content: 'Envoi',
+                start: '2025-04-30',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #64B5F6; border-color: #64B5F6;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Envoi</b><br>' +
+                                        '30-04-2025'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 2,
+                content: 'Dépôt',
+                start: '2025-04-30',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #990099; border-color: #990099;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Dépôt</b><br>' +
+                                        '30-04-2025'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 3,
+                content: 'Dossier incomplet',
+                start: '2025-06-16',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #64B5F6; border-color: #64B5F6;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Dossier incomplet</b><br>' +
+                                        '16-06-2025'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 4,
+                content: 'Compléments',
+                start: '2025-08-29',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                end: '2026-01-20',
+                type: 'range',
+                
+                style: 'background-color: #FFB74D; border-color: #FFB74D;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Compléments</b><br>' +
+                                        '29-08-2025'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 5,
+                content: 'Dossier complet',
+                start: '2026-02-24',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #28a745; border-color: #28a745;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Dossier complet</b><br>' +
+                                        '24-02-2026'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 6,
+                content: 'Avis siamu',
+                start: '2026-04-08',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #4CAF50; border-color: #4CAF50;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Avis siamu</b><br>' +
+                                        '08-04-2026'
+                        + '</div>'
+    },
+                            
+                        
+            {
+                id: 7,
+                content: 'Enquête publique',
+                start: '2026-04-16',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                end: '2026-04-30',
+                type: 'range',
+                
+                style: 'background-color: #3366CC; border-color: #3366CC;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Enquête publique</b><br>' +
+                                            '16-04-2026 au 30-04-2026'
+                            + '</div>'
+    },
+                            
+                        
+            {
+                id: 8,
+                content: 'Commission de concertation',
+                start: '2026-05-07',
+
+                /* On utilise 'range' SEULEMENT si la date de fin existe ET qu'elle est différente de la date de début */
+                                /* Sinon (pas de fin ou fin == début), c'est un point */
+                type: 'point',
+                
+                style: 'background-color: #ffc107; border-color: #ffc107;',
+
+                title: '<div class="tooltip_timeline" style="text-align:left;">' +
+                    '<b>Commission de concertation</b><br>' +
+                                        '07-05-2026'
+                        + '</div>'
+    },
+                                                                                                                                            ])
+
+
+        /* --- Options --- */
+        var options = {
+            locale: 'fr',
+            start: '2025-04-20',
+            end: '2026-05-07',
+
+            minHeight: '150px',
+
+            // OPTIONS CRITIQUES POUR L'AFFICHAGE MULTI-LIGNES :
+            stack: true,          // Force l'empilement si collision
+            stackSubgroups: true, // Empile aussi les sous-groupes si nécessaire
+            margin: {
+                item: 10,         // Espace vertical (px) entre deux éléments empilés
+                axis: 5           // Espace entre les éléments et l'axe des dates
+            },
+
+            showCurrentTime: true,
+            zoomable: true,
+            moveable: true,
+            clickToUse: false,
+            tooltip: {
+                followMouse: true,
+                overflowMethod: 'cap'
+            },
+            locales: {
+                fr: {current: 'Aujourd\'hui', time: 'Temps'},
+                nl: {current: 'Vandaag', time: 'Tijd'}
+            }
+        };
+
+        var timeline = new vis.Timeline(container, items, options);
+    });
+</script>
+                                            </div>
+                    <!-- Card body END -->
+                </div>
+                <!-- Card feed item END -->
+
+            </div>
+            <!-- Main content END -->
+
+            <!-- Right sidebar START -->
+            <div class="col-lg-4 align-self-start">
+
+                <div class="row g-4">
+
+                    
+
+                    <!-- Card START -->
+                    <div class="col-md-6 col-lg-12">
+                        <div id="map" class="card"
+     style="height:260px; background-color: white;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
+<script>
+    // The origin is the <TopLeftCorner> in the GetCapabilities
+    const crsTileOrg = [16478.0, 304073.0];
+    // crsBaseResolution is the <ScaleDenominator> at zoom level 0 from the GetCapabilities call times 0.00028
+    const crsBaseResolution = 1112.61305859;
+    // according to the GetCapabilities info, zoom levels 0 through 15 are defined for EPSG:31370
+    const crsMaxZoom = 15;
+    const crs = new L.Proj.CRS('EPSG:31370', '+proj=lcc +lat_1=51.16666723333333 +lat_2=49.8333339 +lat_0=90 +lon_0=4.367486666666666 +x_0=150000.01256 +y_0=5400088.4378 +ellps=intl +towgs84=-99.1,53.3,-112.5,0.419,-0.83,1.885,-1 +units=m +no_defs', {
+        origin: crsTileOrg,
+        resolutions: Array.from(Array(crsMaxZoom + 2), (e, zoomLevel) => crsBaseResolution / Math.pow(2, zoomLevel))
+    });
+
+    let Style_municipality = L.geoJson(null, {
+        style: function (feature) {
+            return {color: '#f00', weight: 2, opacity: 0.6, fillOpacity: 0, dashArray: [5, 5]};
+        }
+    });
+
+    let blueLayer = L.geoJson(null, {
+        style: function (feature) {
+            return {"color": "#3388ff", "weight": 2.5, "opacity": 0.95};
+        },
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: "#3388ff",
+                color: "#ffffff",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.9
+            });
+        }
+    });
+
+    L.Marker.prototype.options.icon = L.icon({
+        iconUrl: "/images/map_circle_1f5ed2.png",
+        shadowUrl: "/images/map_circle_1f5ed2.png"
+    });
+
+    let bounds = new L.LatLngBounds(new L.LatLng(50.95, 3.7), new L.LatLng(50.7, 5.05));
+
+    var map = L.map('map', {
+        crs: crs,
+        zoomControl: false,
+        maxBounds: bounds,
+        maxBoundsViscosity: 0.8,
+        minZoom: 4,
+    })
+        .setView([50.83923417, 4.35724923], 4);
+
+    map.addControl(new L.control.zoom({
+        zoomInTitle: 'Zoomer',
+        zoomOutTitle: 'Dézoomer',
+        position: 'topleft',
+    }));
+
+    
+    
+    const localTileLayer = L.tileLayer('/tiles/{z}/{x}/{y}.webp', {
+        maxZoom: 4,
+        minZoom: 4,
+        attribution: '<a href="https://paradigm.brussels">Paradigm</a>',
+    });
+
+    const wmsLayer = new L.TileLayer('https://geoservices-basemap.irisnet.be/geowebcache/service/wmts/?service=WMTS&request=GetTile&version=2.0.0&layer=UrbISFrenchLabeledGray&style=default&tileMatrixSet=EPSG:31370&format=image/png&tileMatrix=EPSG:31370:{z}&width=256&height=256&tileRow={y}&tileCol={x}', {
+        maxZoom: 15,
+        minZoom: 5,
+        attribution: '<a href="https://paradigm.brussels">Paradigm</a>',
+    });
+
+    const combinedLayer = L.layerGroup([localTileLayer, wmsLayer]);
+
+    combinedLayer.addTo(map);
+
+    let layer_cadastre = L.tileLayer.wms('https://ccff02.minfin.fgov.be/geoservices/arcgis/services/WMS/Cadastral_Layers/MapServer/WMSServer',
+        {
+            layers: 'Cadastral_parcel',
+            attribution: '<a href="https://www.geo.be">Geo.be</a>',
+            format: 'image/png',
+            minZoom: 10,
+            crs: crs,
+            transparent: 'true'
+        });
+
+    layer_cadastre.on('add', function () {
+        // Obtenez le niveau de zoom actuel de la carte
+        var currentZoom = map.getZoom();
+
+        // Si le niveau de zoom actuel est inférieur à 10, zoomer automatiquement à 10
+        if (currentZoom < 10) {
+            map.flyTo(map.getCenter(), 10);
+        }
+    });
+
+    let map_urbis_ortho = new L.TileLayer('https://geoservices-grid.irisnet.be/geowebcache/service/wmts/?service=WMTS&request=GetTile&version=2.0.0&layer=Ortho&style=default&tileMatrixSet=EPSG:31370&format=image/jpeg&tileMatrix=EPSG:31370:{z}&width=256&height=256&tileRow={y}&tileCol={x}', {
+        maxZoom: 15,
+        minZoom: 2,
+        attribution: '<a href="https://paradigm.brussels">UrbIS</a>',
+    });
+
+    // Individual permit
+        let buildingStyle = L.geoJson(null, {
+        style: function (feature) {
+            return {"color": "#3388ff", "weight": 2.5, "opacity": 0.95};
+        },
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: "#3388ff",
+                color: "#ffffff",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.9
+            });
+        }
+    });
+
+    layer_building = omnivore.geojson('https://geoservices-vector.irisnet.be/geoserver/Nova/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=Nova:PlanningPermits&outputFormat=application%2Fjson&count=1&cql_filter=novaReference=%2701/PU/1984289%27&propertyname=geometry&srsName=EPSG:4326', null, buildingStyle)
+        .on('ready', function () {
+            map.fitBounds(layer_building.getBounds().pad(0.3));
+        }).addTo(map);
+    
+    L.control.locate({
+        icon: 'locate',
+        iconLoading: 'loading',
+        iconElementTag: 'div',
+        strings: {
+            title: "Me géolocaliser"
+        }
+    }).addTo(map);
+
+    
+    
+    let baseMaps = {
+        "Fond de plan": combinedLayer,
+        "Vue aérienne": map_urbis_ortho
+    };
+
+    let overlayMaps = {
+                                "Parcellaire cadastral": layer_cadastre,
+    };
+
+    let groupedOverlays = {
+                "Demandes de permis": {
+                                },
+                "Autres couches": {
+                        "Emprise de la demande": layer_building,
+                        "Parcellaire cadastral": layer_cadastre,
+        },
+    };
+
+    L.control.groupedLayers(baseMaps, groupedOverlays, {collapsed: true}).addTo(map);
+
+    map.addControl(new L.Control.Fullscreen({
+        title: {
+            'false': 'Plein écran',
+            'true': 'Quitter le plein écran'
+        },
+    }));
+
+    function openMarkerPopup(id) {
+        document.getElementById('map').scrollIntoView({behavior: 'smooth', block: 'center'});
+
+        // Standard
+        if (typeof layer_standard_pu !== 'undefined') {
+            layer_standard_pu.eachLayer(function (feature) {
+                if (feature.feature.properties.novaReference === id) {
+                    layer_standard_pu.addTo(map);
+                    feature.openPopup();
+                }
+            });
+        }
+        if (typeof layer_standard_pe !== 'undefined') {
+            layer_standard_pe.eachLayer(function (feature) {
+                if (feature.feature.properties.novaReference === id) {
+                    layer_standard_pe.addTo(map);
+                    feature.openPopup();
+                }
+            });
+        }
+
+        // Exemptions
+        
+    }
+</script>
+                    </div>
+                    <!-- Card END -->
+
+                    <div class="col-md-6 col-lg-12">
+                        <div class="card">
+
+                                                        <div class="permit-image-wrapper position-relative">
+
+                                
+                                                                                                    <div class="wms-fallback map-card"
+                                         style="">
+                                        <img id="wms-ortho-placeholder"
+                                             alt="Vue aérienne"
+                                             src="https://geoservices-grid.irisnet.be/geoserver/urbisgrid/ows?SERVICE=WMS&amp;VERSION=2.0.0&amp;REQUEST=GetMap&amp;FORMAT=image%2Fjpeg&amp;TRANSPARENT=false&amp;LAYERS=Ortho&amp;STYLES=&amp;CRS=EPSG%3A31370&amp;WIDTH=374&amp;HEIGHT=220&amp;BBOX=145195.468035%2C169335.7073%2C145267.314965%2C169377.9702"
+                                             class="card-img-top"
+                                             style="width: 100%; object-fit: cover;"/>
+
+                                        <div class="leaflet-attribution">
+                                            <a href="https://datastore.brussels/web/data?searchedTerms=urbis">Vue aérienne
+                                                UrbIS</a>
+                                        </div>
+                                    </div>
+                                                            </div>
+
+                            <!-- Card header START -->
+                            <div class="card-header d-sm-flex justify-content-between border-0">
+                                <h3 class="card-title">Références</h3>
+                            </div>
+                            <!-- Card header END -->
+                            <!-- Card body START -->
+                            <div class="card-body position-relative pt-0">
+                                <div class="row g-2">
+                                    <table class="table table-borderless table-sm">
+    <tbody>
+    <tr>
+        <th scope="row">Référence régionale</th>
+        <td>01/PU/1984289</td>
+    </tr>
+            <tr>
+            <th scope="row">Référence communale</th>
+            <td>PU 53718</td>
+        </tr>
+                <tr>
+            <th scope="row">Version</th>
+            <td>1</td>
+        </tr>
+        
+        </tbody>
+</table>
+
+                                </div>
+                            </div>
+                            <!-- Card body END -->
+                        </div>
+                    </div>
+                    <!-- Card END -->
+
+                    <!-- Card START -->
+                    <div class="col-md-6 col-lg-12">
+                        <div class="card">
+                            <div class="accordion accordion-flush" id="accordionFlushExample">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+                                                                    
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                <strong class="w-50">Type de demande</strong> Urbanisme
+            </button>
+        </h2>
+        <div id="flush-collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+            <div class="accordion-body">
+                <b>Demande de permis d'urbanisme</b><br>Les actes et travaux soumis à permis d'urbanisme sont listés par le Code Bruxellois de l'Aménagement du Territoire (CoBAT).
+                <br><br>
+                <strong class="w-50">Sous-type</strong>: PU
+                <br>Permis d&#039;urbanisme privé
+            </div>
+        </div>
+    </div>
+                                <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
+                <strong class="w-50">Autorité délivrante</strong> Commune
+            </button>
+        </h2>
+        <div id="flush-collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+            <div class="accordion-body"><b>La commune</b> (Anderlecht) est l'autorité délivrante pour cette demande de permis, conformément à la règle générale qui indique qu'en Région bruxelloise la délivrance des permis d'urbanisme relève de la compétence des communes (collège des bourgmestre et échevins).</div>
+        </div>
+    </div>
+
+                <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+                    <strong class="w-50">Délai de traitement</strong> 160 jours
+                </button>
+            </h2>
+            <div id="flush-collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body">Les délais pour délivrer le permis sont fixés par le <b>Code Bruxellois de l'Aménagement du Territoire</b> (CoBAT), à partir du lendemain de l'envoi de l’accusé de réception du dossier complet. Ils varient d’une demande à l’autre, en fonction des différentes mesures d’instruction ou événements auxquels est soumise la demande de permis.</div>
+            </div>
+        </div>
+    </div>
+                        </div>
+                    </div>
+                    <!-- Card END -->
+
+                    
+
+                    <!-- Card START -->
+                    <div class="col-md-6 col-lg-12">
+                        <div class="card">
+                            <!-- Card header START -->
+                            <div class="card-header d-sm-flex justify-content-between border-0">
+                                <h3 class="card-title">Chronologie</h3>
+                            </div>
+                            <!-- Card header END -->
+                            <!-- Card body START -->
+                            <div class="card-body position-relative pt-0">
+                                <div class="row g-2">
+                                    <table class="table table-sm table-borderless table-hover">
+    <tbody>
+                        <tr>
+                <th scope="row">                        Envoi
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/sending/2025/4" style="padding: 4px 4px 10px 10px;"
+                           >
+                            30-04-2025
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Dépôt
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/submission/2025/4" style="padding: 4px 4px 10px 10px;"
+                           >
+                            30-04-2025
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Dossier incomplet
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/ari/2025/6" style="padding: 4px 4px 10px 10px;"
+                           >
+                            16-06-2025
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Compléments
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/additional_elements/2025/8" style="padding: 4px 4px 10px 10px;"
+                           >
+                            29-08-2025
+                        </a>
+                                        <br>
+                                            <a href="/fr/event/additional_elements/2026/1" style="padding: 4px 4px 10px 10px;"
+                           >
+                            20-01-2026
+                        </a>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Dossier complet
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/arc/2026/2" style="padding: 4px 4px 10px 10px;"
+                           >
+                            24-02-2026
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Avis siamu
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/siamu_opinion/2026/4" style="padding: 4px 4px 10px 10px;"
+                           >
+                            08-04-2026
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Enquête publique
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/inquiry/2026/4" style="padding: 4px 4px 10px 10px;"
+                           >
+                            16-04-2026
+                        </a>
+                                        <br>
+                                            <a href="/fr/event/inquiry/2026/4" style="padding: 4px 4px 10px 10px;"
+                           >
+                            30-04-2026
+                        </a>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Commission de concertation
+                                    </th>
+                <td class="text-end">
+                                            <a href="/fr/event/consultation_commission/2026/5" style="padding: 4px 4px 10px 10px;"
+                           >
+                            07-05-2026
+                        </a>
+                                        <br>
+                                    </td>
+            </tr>
+                                            <tr>
+                <th scope="row">                        Décision (notification)
+                                    </th>
+                <td class="text-end">
+                                        <br>
+                                    </td>
+            </tr>
+                                                        <tr>
+                <th scope="row">                        Mise en œuvre
+                                    </th>
+                <td class="text-end">
+                                        <br>
+                                    </td>
+            </tr>
+                                <tr>
+                <th scope="row">                        Validité
+                                    </th>
+                <td class="text-end">
+                                        <br>
+                                    </td>
+            </tr>
+                </tbody>
+</table>
+                                </div>
+                            </div>
+                            <!-- Card body END -->
+                        </div>
+                    </div>
+                    <!-- Card END -->
+
+                    
+                    <!-- Card START -->
+                    <div class="col-md-6 col-lg-12 public-data">
+                        <div class="card">
+                            <!-- Card header START -->
+                            <div class="card-header d-sm-flex justify-content-between border-0">
+                                <h3 class="card-title">Données publiques</h3>
+                            </div>
+                            <!-- Card body START -->
+                            <div class="card-body position-relative pt-0">
+                                <div class="row g-2">
+
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn rounded-0 btn-primary"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            Télécharger les données
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item"
+                                                   href="https://geoservices-vector.irisnet.be/geoserver/Nova/ows?service=WFS&amp;version=2.0.0&amp;request=GetFeature&amp;typeName=Nova:PlanningPermits&amp;outputFormat=application%2Fjson&amp;count=1&amp;cql_filter=novaReference=%2701/PU/1984289%27"
+                                                   rel="nofollow, noindex">Format GeoJSON</a>
+                                            </li>
+                                            <li><a class="dropdown-item"
+                                                   href="https://geoservices-vector.irisnet.be/geoserver/Nova/ows?service=WFS&amp;version=2.0.0&amp;request=GetFeature&amp;typeName=Nova:PlanningPermits&amp;outputFormat=application%2Fjson&amp;count=1&amp;cql_filter=novaReference=%2701/PU/1984289%27"
+                                                   rel="nofollow, noindex">Format Shapefile</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <!-- Card body END -->
+
+                        </div>
+                    </div>
+                    <!-- Card END -->
+
+                </div>
+
+                <div class="gap-1 external-links">
+    <ul class="nav mt-4 justify-content-center lh-1">
+        <li class="nav-item py-1">
+            <a class="nav-link" href="mailto:openpermits@urban.brussels"><b>openpermits</b>@urban.brussels</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" target="_blank" href="https://symfony.com/what-is-symfony"
+               title="Développé avec Symfony"><svg width="18" height="18" viewBox="0 0 256 257" fill="currentColor" aria-hidden="true"><circle cx="128" cy="128.827" r="128" fill="#1A171B"></circle><path fill="#FFF" d="M183.706 48.124c-12.986.453-24.32 7.61-32.757 17.51c-9.342 10.855-15.557 23.73-20.035 36.872c-8.01-6.565-14.19-15.064-27.041-18.77c-9.933-2.852-20.366-1.674-29.96 5.474c-4.545 3.395-7.676 8.527-9.165 13.351c-3.855 12.537 4.053 23.694 7.645 27.7l7.853 8.416c1.619 1.65 5.518 5.955 3.612 12.127c-2.06 6.71-10.15 11.055-18.448 8.495c-3.706-1.13-9.03-3.891-7.838-7.779c.493-1.59 1.631-2.78 2.241-4.155c.56-1.181.827-2.067.997-2.587c1.516-4.95-.555-11.39-5.857-13.025c-4.946-1.516-10.007-.315-11.969 6.054c-2.225 7.235 1.237 20.366 19.783 26.084c21.729 6.676 40.11-5.155 42.717-20.586c1.642-9.665-2.722-16.845-10.717-26.08l-6.514-7.204c-3.946-3.942-5.301-10.661-1.217-15.825c3.446-4.356 8.354-6.215 16.392-4.029c11.733 3.186 16.963 11.327 25.69 17.893c-3.603 11.819-5.958 23.682-8.09 34.32l-1.299 7.931c-6.238 32.721-11 50.688-23.375 61.003c-2.493 1.773-6.057 4.427-11.429 4.612c-2.816.087-3.726-1.85-3.765-2.694c-.067-1.977 1.599-2.883 2.706-3.773c1.654-.902 4.155-2.398 3.985-7.191c-.18-5.664-4.872-10.575-11.654-10.35c-5.08.173-12.823 4.954-12.532 13.705c.303 9.039 8.728 15.813 21.43 15.384c6.79-.233 21.952-2.997 36.895-20.76c17.392-20.362 22.256-43.705 25.915-60.79l4.084-22.556c2.269.272 4.695.453 7.334.516c21.661.457 32.496-10.763 32.657-18.924c.107-4.939-3.241-9.799-7.928-9.689c-3.355.095-7.57 2.328-8.582 6.968c-.988 4.552 6.893 8.66.733 12.65c-4.376 2.832-12.221 4.828-23.269 3.206l2.009-11.103c4.1-21.055 9.157-46.954 28.341-47.584c1.398-.071 6.514.063 6.633 3.446c.035 1.13-.245 1.418-1.568 4.005c-1.347 2.017-1.855 3.734-1.792 5.707c.185 5.376 4.273 8.909 10.185 8.696c7.916-.256 10.193-7.963 10.063-11.921c-.32-9.3-10.122-15.175-23.1-14.75"></path></svg></a>
+        </li>
+                <li class="nav-item">
+            <form method="post" class="btn btn-link px-2 py-2">
+                <input type="hidden" name="refresh">
+                <button type="submit" name="invalidate_cache" data-toggle="tooltip" data-html="true"
+                        title="En cache: 27-04-2026 12:06:36 - Recharger les données"
+                        class="btn btn-link" style="color:dimgrey;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"></path><path fill="currentColor" d="M4 9.5A1.5 1.5 0 0 1 5.5 11a5.5 5.5 0 0 0 5.279 5.496L11 16.5h2.382a1.5 1.5 0 0 1 2.065-2.164l.114.103l2.5 2.5a1.5 1.5 0 0 1 .43.89l.009.157v.028a1.5 1.5 0 0 1-.348.947l-.097.105l-2.494 2.495a1.5 1.5 0 0 1-2.272-1.947l.093-.114H11A8.5 8.5 0 0 1 2.5 11A1.5 1.5 0 0 1 4 9.5m4.44-7.06a1.5 1.5 0 0 1 2.27 1.946l-.092.114H13a8.5 8.5 0 0 1 8.5 8.5a1.5 1.5 0 1 1-3 0a5.5 5.5 0 0 0-5.279-5.496L13 7.5h-2.382a1.5 1.5 0 0 1-2.065 2.164L8.44 9.56l-2.5-2.5a1.5 1.5 0 0 1-.103-2.008l.103-.114l2.5-2.5Z"></path></g></svg>
+                </button>
+            </form>
+        </li>
+    </ul>
+    <ul class="nav justify-content-center lh-1">
+        <li class="nav-item">
+            <a class="nav-link" href="https://urban.brussels"><b>urban</b>.brussels</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="https://environnement.brussels"><b>environnement</b>.brussels</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="https://paradigm.brussels"><b>paradigm</b>.brussels</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="https://perspective.brussels"><b>perspective</b>.brussels</a>
+        </li>
+            </ul>
+</div>
+
+
+            </div>
+            <!-- Right sidebar END -->
+
+        </div> <!-- Row END -->
+    </div>
+    <!-- Container END -->
+
+</main>
+<!-- **************** MAIN CONTENT END **************** -->
+
+<!-- =======================
+JS libraries, plugins and custom scripts -->
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+
+<script src="/assets/js/functions-pOCKlUK.js"></script>
+
+
+
+</body>
+</html>

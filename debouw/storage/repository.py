@@ -33,6 +33,7 @@ async def upsert_project(session: AsyncSession, project: PermitProject) -> None:
     stmt = sqlite_insert(PermitProjectRow).values(
         external_id=data["external_id"],
         source=data["source"],
+        region=data["region"],
         omv_reference=data["omv_reference"],
         detail_url=str(project.detail_url),
         title=data["title"],
@@ -64,7 +65,7 @@ async def upsert_project(session: AsyncSession, project: PermitProject) -> None:
         set_={
             col: stmt.excluded[col]
             for col in [
-                "source", "omv_reference", "detail_url", "title", "description",
+                "source", "region", "omv_reference", "detail_url", "title", "description",
                 "applicant_name", "address", "project_type", "floors", "height_m",
                 "units", "parking_spaces", "trees_to_fell", "mer_status", "iioa_class",
                 "status", "decision_date", "decision_outcome", "attachments",
@@ -88,6 +89,7 @@ async def get_project(session: AsyncSession, external_id: str) -> PermitProject 
     row_dict = {
         "external_id": row.external_id,
         "source": row.source,
+        "region": row.region,
         "omv_reference": row.omv_reference,
         "detail_url": row.detail_url,
         "title": row.title,

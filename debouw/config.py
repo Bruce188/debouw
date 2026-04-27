@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     throttle_rvvb_seconds: float = 10.0  # bumped to honour robots.txt Crawl-Delay
     throttle_inzageloket_seconds: float = 5.0
     throttle_geopunt_seconds: float = 1.0
+    throttle_brussels_seconds: float = 2.0  # Phase 5: polite rate for openpermits.brussels
 
     # --- Paths (lazy-created at runtime) ---
     data_root: Path = Field(

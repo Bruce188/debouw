@@ -61,6 +61,13 @@ def main() -> None:
     # Load data
     engine_key = str(settings.db_path)
 
+    # Region label → internal value mapping (Phase 5)
+    _REGION_LABEL_MAP = {
+        "Vlaanderen": "vl",
+        "Brussel": "brussels",
+        "Wallonië": "wl",
+    }
+
     # Sidebar filters
     with st.sidebar:
         # Build gemeente options from in-memory projects (deduped, sorted).
@@ -74,6 +81,12 @@ def main() -> None:
         _municipalities: list[str] = sorted(
             m for m in _municipalities_raw if isinstance(m, str)
         )
+        selected_regio = st.multiselect(
+            "Regio",
+            options=list(_REGION_LABEL_MAP.keys()),
+            default=[],
+            help="Laat leeg om alle regio's te tonen",
+        )
         selected_gemeenten = st.multiselect(
             "Gemeenten", options=_municipalities, default=[],
             help="Laat leeg om alle gemeenten te tonen",
@@ -85,7 +98,15 @@ def main() -> None:
 
     projects = _projects(_engine_id=engine_key)
 
-    # Apply filters
+    # Apply region filter (AND with gemeente)
+    if selected_regio:
+        selected_region_enums = {_REGION_LABEL_MAP[label] for label in selected_regio}
+        # Warn if Wallonië selected but no rows expected (not yet ingested)
+        if "wl" in selected_region_enums:
+            st.warning("Nog geen Waalse dossiers — Fase 6+")
+        projects = [p for p in projects if p.get("region") in selected_region_enums]
+
+    # Apply gemeente filter
     if selected_gemeenten:
         selected_lower = {g.lower() for g in selected_gemeenten}
 

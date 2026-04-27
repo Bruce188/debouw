@@ -5,11 +5,16 @@ Each RiskCategoryDef is the single source of truth for:
 - rule scoring (beta_weights, base_success_rate, severity_prior_days)
 - narrator system prompt (label_nl, legal_basis_nl, typical_objector_template_nl)
 - static-template fallback (static_rationale_nl)
+- FR narrator branch (label_fr, legal_basis_fr, static_rationale_fr,
+  typical_objector_template_fr) — populated for categories that include
+  "brussels" in applicable_regions
 - project_modifier callable for context-sensitive severity
+- applicable_regions: set of region codes where this rule may fire
 """
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Literal
 
 from debouw.models.permit import GeoOverlays, PermitProject, RiskCategory
 
@@ -91,6 +96,20 @@ class RiskCategoryDef:
     static_rationale_nl: str            # confidence < 0.3 fallback
     project_modifier: Callable[[PermitProject, GeoOverlays | None], float]
 
+    # Phase 5: regional applicability — defaults to Vlaanderen only
+    # All 14 categories include "vl". Brussels-applicable categories also include
+    # "brussels". No category is "wl" only (Wallonie is out of scope for Phase 5).
+    applicable_regions: frozenset[Literal["vl", "wl", "brussels"]] = field(
+        default_factory=lambda: frozenset({"vl"})
+    )
+
+    # French sibling fields — populated ONLY for categories where
+    # "brussels" in applicable_regions. None for VL-only categories.
+    label_fr: str | None = None
+    legal_basis_fr: str | None = None
+    static_rationale_fr: str | None = None
+    typical_objector_template_fr: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # 14 category definitions
@@ -115,6 +134,14 @@ GRO_HEIGHT_DEF = RiskCategoryDef(
         "verifieer manueel de verhouding tussen gebouwhoogte en omringende bebouwing."
     ),
     project_modifier=project_modifier_height,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Conflit d'échelle et de hauteur de bâtiment",
+    legal_basis_fr="art. 188/1 CoBAT; Règlement Régional d'Urbanisme (RRU) titre I",
+    static_rationale_fr=(
+        "Données insuffisantes pour évaluer l'impact sur l'échelle et la hauteur du bâtiment; "
+        "vérifier manuellement le rapport entre la hauteur du bâtiment et le bâti environnant."
+    ),
+    typical_objector_template_fr="riverains dans un rayon de 50 m",
 )
 
 WATER_FLOOD_DEF = RiskCategoryDef(
@@ -136,6 +163,12 @@ WATER_FLOOD_DEF = RiskCategoryDef(
         "raadpleeg de watertoets via het Geopunt-loket."
     ),
     project_modifier=project_modifier_water_flood,
+    # WATER_FLOOD requires Vlaamse overlay data (VMM/Geopunt) — VL only
+    applicable_regions=frozenset({"vl"}),
+    label_fr=None,
+    legal_basis_fr=None,
+    static_rationale_fr=None,
+    typical_objector_template_fr=None,
 )
 
 MER_SCREENING_DEF = RiskCategoryDef(
@@ -157,6 +190,14 @@ MER_SCREENING_DEF = RiskCategoryDef(
         "bijlage II van het MER-besluit en art. 4.3.2 DABM."
     ),
     project_modifier=project_modifier_mer,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Étude d'incidences sur l'environnement (EIE) insuffisante",
+    legal_basis_fr="art. 173 CoBAT; Ordonnance du 5 juin 1997 relative aux permis d'environnement (ORDE)",
+    static_rationale_fr=(
+        "L'évaluation des incidences peut être insuffisante; "
+        "vérifier les seuils de l'annexe de l'ordonnance du 5 juin 1997."
+    ),
+    typical_objector_template_fr="Bruxelles Environnement / riverains disposant d'expertise EIE",
 )
 
 BPA_RUP_CONFLICT_DEF = RiskCategoryDef(
@@ -178,6 +219,12 @@ BPA_RUP_CONFLICT_DEF = RiskCategoryDef(
         "raadpleeg de stedenbouwkundige voorschriften van de betrokken zone."
     ),
     project_modifier=project_modifier_default,
+    # BPA/RUP is VCRO-specific (Vlaamse Codex Ruimtelijke Ordening) — VL only
+    applicable_regions=frozenset({"vl"}),
+    label_fr=None,
+    legal_basis_fr=None,
+    static_rationale_fr=None,
+    typical_objector_template_fr=None,
 )
 
 MOTIVATION_DEFECT_DEF = RiskCategoryDef(
@@ -198,6 +245,14 @@ MOTIVATION_DEFECT_DEF = RiskCategoryDef(
         "vergunningsbeslissing de goede ruimtelijke ordening voldoende motiveert."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Défaut de motivation de la décision d'urbanisme",
+    legal_basis_fr="art. 188/1 CoBAT; jurisprudence CdE (Conseil d'État belge)",
+    static_rationale_fr=(
+        "Un défaut de motivation est un moyen universel devant le Conseil d'État; "
+        "vérifier si la décision de permis motive suffisamment le bon aménagement des lieux."
+    ),
+    typical_objector_template_fr="tout tiers ayant intérêt à agir",
 )
 
 TREES_KAPVERG_DEF = RiskCategoryDef(
@@ -217,6 +272,14 @@ TREES_KAPVERG_DEF = RiskCategoryDef(
         "verifieer of een kapvergunning vereist is via de gemeentelijke bomenverordening."
     ),
     project_modifier=project_modifier_trees,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Abattage d'arbres remarquables",
+    legal_basis_fr="art. 70 CoBAT; Ordonnance du 27 avril 1995 relative aux arbres remarquables; règlement communal",
+    static_rationale_fr=(
+        "Données insuffisantes sur le nombre et la valeur des arbres à abattre; "
+        "vérifier si un permis d'abattage est requis via le règlement communal applicable."
+    ),
+    typical_objector_template_fr="comités de quartier / associations environnementales (Natagora, IEB)",
 )
 
 MOBILITY_PARKING_DEF = RiskCategoryDef(
@@ -237,6 +300,14 @@ MOBILITY_PARKING_DEF = RiskCategoryDef(
         "parkeernormen in het gemeentelijk parkeerreglement."
     ),
     project_modifier=project_modifier_parking,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Déficit de normes de stationnement",
+    legal_basis_fr="art. 188/1 CoBAT; Règlement Régional d'Urbanisme (RRU) titre VIII — stationnement",
+    static_rationale_fr=(
+        "Données insuffisantes pour calculer le ratio de stationnement; "
+        "vérifier les normes dans le RRU titre VIII et le règlement communal de stationnement."
+    ),
+    typical_objector_template_fr="riverains / service mobilité de la commune",
 )
 
 NATURE_2000_N_DEF = RiskCategoryDef(
@@ -258,6 +329,14 @@ NATURE_2000_N_DEF = RiskCategoryDef(
         "raadpleeg het ANB voor een passende beoordeling bij twijfel."
     ),
     project_modifier=project_modifier_nature,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Évaluation appropriée / zones Natura 2000",
+    legal_basis_fr="art. 173 CoBAT; Directive Habitats art. 6; Ordonnance du 1er mars 2012 relative à la conservation de la nature",
+    static_rationale_fr=(
+        "Données insuffisantes sur la proximité des zones Natura 2000; "
+        "consulter Bruxelles Environnement pour une évaluation appropriée en cas de doute."
+    ),
+    typical_objector_template_fr="Bruxelles Environnement / Natagora / associations naturalistes",
 )
 
 HERITAGE_INV_DEF = RiskCategoryDef(
@@ -278,6 +357,14 @@ HERITAGE_INV_DEF = RiskCategoryDef(
         "verifieer de vastgestelde inventaris via geo.onroerenderfgoed.be."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Inventaire du patrimoine architectural",
+    legal_basis_fr="art. 206 CoBAT; Ordonnance du 4 mars 2021 relative au patrimoine immobilier",
+    static_rationale_fr=(
+        "Données insuffisantes sur la valeur patrimoniale ou la proximité d'un bien protégé; "
+        "vérifier l'inventaire du patrimoine via urban.brussels."
+    ),
+    typical_objector_template_fr="urban.brussels / associations du patrimoine (ARAU, Docomomo)",
 )
 
 NUISANCE_NOISE_DEF = RiskCategoryDef(
@@ -298,6 +385,14 @@ NUISANCE_NOISE_DEF = RiskCategoryDef(
         "verifieer de IIOA-klasse en de afstand tot woonbebouwing."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Nuisances sonores / olfactives / lumineuses",
+    legal_basis_fr="Ordonnance du 5 juin 1997 relative aux permis d'environnement; art. 135 Nouvelle Loi Communale",
+    static_rationale_fr=(
+        "Données insuffisantes pour évaluer les nuisances (bruit, odeurs, lumière); "
+        "vérifier la classe d'établissement classé et la distance aux habitations."
+    ),
+    typical_objector_template_fr="riverains / Bruxelles Environnement",
 )
 
 PRIVACY_BEZONNING_DEF = RiskCategoryDef(
@@ -318,6 +413,14 @@ PRIVACY_BEZONNING_DEF = RiskCategoryDef(
         "aantal bouwlagen en de afstand tot aanpalende woningen."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Atteinte à la vie privée / ensoleillement",
+    legal_basis_fr="art. 188/1 CoBAT; RRU titre I — gabarits",
+    static_rationale_fr=(
+        "Données insuffisantes sur l'impact sur la vie privée et l'ensoleillement; "
+        "vérifier le nombre de niveaux et la distance aux habitations voisines."
+    ),
+    typical_objector_template_fr="voisins directs",
 )
 
 BINDING_ADVICE_IGNORED_DEF = RiskCategoryDef(
@@ -337,6 +440,14 @@ BINDING_ADVICE_IGNORED_DEF = RiskCategoryDef(
         "werd genegeerd; raadpleeg de adviezen in het dossier."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Avis contraignant défavorable non respecté",
+    legal_basis_fr="art. 188/5 CoBAT; avis contraignant conformément au droit bruxellois de l'urbanisme",
+    static_rationale_fr=(
+        "Informations textuelles insuffisantes pour vérifier si un avis contraignant "
+        "défavorable a été ignoré; consulter les avis dans le dossier."
+    ),
+    typical_objector_template_fr="instance consultée (Bruxelles Environnement, urban.brussels)",
 )
 
 FUNCTION_MIX_ZONING_DEF = RiskCategoryDef(
@@ -357,6 +468,14 @@ FUNCTION_MIX_ZONING_DEF = RiskCategoryDef(
         "bestemming in het BPA/RUP met het opgegeven projecttype."
     ),
     project_modifier=project_modifier_default,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Affectation incompatible avec le zonage",
+    legal_basis_fr="art. 188/1 CoBAT; Plan Régional d'Affectation du Sol (PRAS)",
+    static_rationale_fr=(
+        "Données insuffisantes pour évaluer la compatibilité de la fonction avec le zonage; "
+        "comparer la destination dans le PRAS avec le type de projet déclaré."
+    ),
+    typical_objector_template_fr="riverains / service urbanisme de la commune",
 )
 
 VERGUNNINGENCARROUSEL_DEF = RiskCategoryDef(
@@ -376,6 +495,14 @@ VERGUNNINGENCARROUSEL_DEF = RiskCategoryDef(
         "verifieer via de kadastrale referentie of eerdere dossiers bestaan."
     ),
     project_modifier=project_modifier_carrousel,
+    applicable_regions=frozenset({"vl", "brussels"}),
+    label_fr="Fractionnement de demandes de permis",
+    legal_basis_fr="art. 188/1 CoBAT; jurisprudence CdE sur le fractionnement de permis",
+    static_rationale_fr=(
+        "Données insuffisantes sur les demandes répétées à la même parcelle; "
+        "vérifier via la référence cadastrale si des dossiers antérieurs existent."
+    ),
+    typical_objector_template_fr="Département Urbanisme / riverains",
 )
 
 
@@ -404,3 +531,44 @@ TAXONOMY: Mapping[RiskCategory, RiskCategoryDef] = {
 def get_category_def(c: RiskCategory) -> RiskCategoryDef:
     """Return the RiskCategoryDef for the given category; raises KeyError on miss."""
     return TAXONOMY[c]
+
+
+def _build_taxonomy_markdown(
+    language: Literal["nl", "fr"] = "nl",
+    region: Literal["vl", "brussels"] = "vl",
+) -> str:
+    """Build a taxonomy markdown string for use in narrator system prompts.
+
+    Parameters
+    ----------
+    language : "nl" or "fr"
+        When "fr", uses FR sibling fields (label_fr, legal_basis_fr,
+        typical_objector_template_fr). Categories where the FR fields are None
+        are excluded (they are not applicable in Brussels).
+    region : "vl" or "brussels"
+        Filter to categories where region is in defn.applicable_regions.
+        Default "vl" returns all 14 categories (Vlaanderen behaviour).
+    """
+    header = "## Risicotaxonomie\n" if language == "nl" else "## Taxonomie des risques\n"
+    lines = [header]
+
+    for cat, defn in TAXONOMY.items():
+        # Skip categories not applicable to this region
+        if region not in defn.applicable_regions:
+            continue
+
+        if language == "fr":
+            # Only include categories with FR sibling fields populated
+            if defn.label_fr is None:
+                continue
+            lines.append(f"### {cat.value}: {defn.label_fr}")
+            lines.append(f"- **Base légale:** {defn.legal_basis_fr}")
+            lines.append(f"- **Auteur typique de la réclamation:** {defn.typical_objector_template_fr}")
+        else:
+            lines.append(f"### {cat.value}: {defn.label_nl}")
+            lines.append(f"- **Juridische grondslag:** {defn.legal_basis_nl}")
+            lines.append(f"- **Typische bezwaarmaker:** {defn.typical_objector_template_nl}")
+
+        lines.append("")
+
+    return "\n".join(lines)

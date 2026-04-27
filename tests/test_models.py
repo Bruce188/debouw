@@ -88,3 +88,31 @@ def test_risk_category_member_names():
         "vergunningencarrousel",
     }
     assert {c.value for c in RiskCategory} == expected
+
+
+def test_permit_project_region_field(sample_permit_project):
+    """region field: defaults to 'vl', round-trips all three values, rejects invalids."""
+    # Default value
+    assert sample_permit_project.region == "vl"
+
+    # Round-trip through model_dump / model_validate for all three values
+    for region_val in ("vl", "wl", "brussels"):
+        data = sample_permit_project.model_dump(mode="json")
+        data["region"] = region_val
+        rebuilt = PermitProject.model_validate(data)
+        assert rebuilt.region == region_val
+
+    # Reject values outside the Literal
+    invalid_data = sample_permit_project.model_dump(mode="json")
+    invalid_data["region"] = "flanders"
+    with pytest.raises(ValidationError):
+        PermitProject.model_validate(invalid_data)
+
+    invalid_data2 = sample_permit_project.model_dump(mode="json")
+    invalid_data2["region"] = ""
+    with pytest.raises(ValidationError):
+        PermitProject.model_validate(invalid_data2)
+
+    # frozen=True still raises on assignment to the new field
+    with pytest.raises((ValidationError, TypeError)):
+        sample_permit_project.region = "brussels"  # type: ignore[misc]

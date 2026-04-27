@@ -32,7 +32,7 @@ def status() -> None:
 
 @app.command()
 def ingest(
-    source: str = typer.Option("gent", help="Source name (gent | vlaanderen_inzage)"),
+    source: str = typer.Option("gent", help="Source name (gent | vlaanderen_inzage | brussels)"),
     limit: int | None = typer.Option(None, help="Max dossiers to ingest"),
 ) -> None:
     """Ingest permit data from a source."""

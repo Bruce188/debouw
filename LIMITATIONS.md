@@ -182,3 +182,45 @@ en publiek toegankelijke veldwaarden.
 dossiers (gewijzigde `content_hash`) opnieuw geclassificeerd. Bestaande
 dossiers worden overgeslagen — een volledige run kost dus alleen op de
 eerste keer ~30-90 min.
+
+## Brussel — Fase 5 (COBAT)
+
+debouw scrapet `openpermits.brussels` via **bs4 + httpx** (Track B —
+statisch HTML, geen JavaScript-rendering vereist). De site draait op
+nginx met een Redis-cache en heeft geen Anubis-bescherming.
+
+| Beleid | Waarde |
+|---|---|
+| Source | `openpermits.brussels` (`source="brussels_openpermits"`) |
+| Track | Track B: bs4 + httpx |
+| User-Agent | `debouw-research/0.x (contact: brucieboyy99@gmail.com)` |
+| Throttle | 1 req / 2 s (Settings.throttle_brussels_seconds = 2.0) |
+| robots.txt | `Allow: /fr/*` en `/nl/*`; `Disallow: /api/*` — huidige track gebruikt enkel /fr/* HTML-pagina's |
+
+**FR-narrator branch:** Voor dossiers met `region="brussels"` gebruikt de
+narrator `INSTRUCTIONS_FR` en de Franstalige taxonomie-markdown
+(`_build_taxonomy_markdown(language="fr", region="brussels")`). De statische
+terugval gebruikt eveneens `static_rationale_fr` en `legal_basis_fr`.
+`engine_version` is ongewijzigd (`0.3.0-rules-precedents-v1` — geen fase-3
+escalatie heeft plaatsgevonden).
+
+**UrbIS / Brusselse ruimtelijke overlays:** Geopunt-verrijking (watertoets,
+natura-2000, erfgoed) is Vlaams en is **niet van toepassing** op
+Brusselse dossiers. Brussel-dossiers stromen door de pipeline met
+`overlays=None`; regels verlagen naar `confidence="laag"`. UrbIS-API
+integratie is uitgesteld tot Fase 6+.
+
+**VL-only risicocategorieën:** `BPA_RUP_CONFLICT` en `WATER_FLOOD` zijn
+enkel van toepassing op Vlaamse dossiers (`applicable_regions={"vl"}`).
+Ze worden automatisch overgeslagen voor Brusselse dossiers.
+
+**Wallonische dossiers:** Nog niet beschikbaar — Fase 6+.
+
+**GDPR posture:** Identiek aan Gent en Inzageloket — `applicant_name`
+wordt nooit gepersisteerd. `openpermits.brussels` toont ook geen naam.
+
+**SSRF-bescherming:** Bijlage-URL's worden gevalideerd tegen de allowlist
+(host == `openpermits.brussels`, schema == `https`) vóór elke download.
+
+**mybrugis.brussels:** DNS-onbereikbaar tijdens de Phase-1-spike (april 2026);
+alternatieve bronnen niet geactiveerd.

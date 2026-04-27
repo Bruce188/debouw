@@ -188,3 +188,79 @@ def test_render_risk_table_empty() -> None:
 
     assert result is None
     assert info_calls, "st.info() should be called on empty projects"
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 (Task 6.1): Regio multiselect filter logic
+# ---------------------------------------------------------------------------
+
+def test_regio_multiselect_filter_logic():
+    """Region filter correctly partitions vl/brussels/wl rows."""
+    _REGION_LABEL_MAP = {
+        "Vlaanderen": "vl",
+        "Brussel": "brussels",
+        "Wallonië": "wl",
+    }
+
+    projects = [
+        {"external_id": "gent:OMV_1", "region": "vl", "address": {"municipality": "Gent"}},
+        {"external_id": "vl_inz:OMV_2", "region": "vl", "address": {"municipality": "Antwerpen"}},
+        {"external_id": "brussels:01/PU/1984289", "region": "brussels", "address": {"municipality": "Anderlecht"}},
+    ]
+
+    # Select only Vlaanderen
+    selected_regio = ["Vlaanderen"]
+    selected_region_enums = {_REGION_LABEL_MAP[label] for label in selected_regio}
+    filtered = [p for p in projects if p.get("region") in selected_region_enums]
+    assert len(filtered) == 2
+    assert all(p["region"] == "vl" for p in filtered)
+
+    # Select only Brussel
+    selected_regio = ["Brussel"]
+    selected_region_enums = {_REGION_LABEL_MAP[label] for label in selected_regio}
+    filtered = [p for p in projects if p.get("region") in selected_region_enums]
+    assert len(filtered) == 1
+    assert filtered[0]["external_id"] == "brussels:01/PU/1984289"
+
+    # Empty selection → all rows pass
+    selected_regio = []
+    if not selected_regio:
+        filtered = projects
+    assert len(filtered) == 3
+
+    # Wallonië selected → no rows (wl rows not ingested yet)
+    selected_regio = ["Wallonië"]
+    selected_region_enums = {_REGION_LABEL_MAP[label] for label in selected_regio}
+    filtered = [p for p in projects if p.get("region") in selected_region_enums]
+    assert len(filtered) == 0
+
+
+def test_regio_and_gemeente_and_filter():
+    """Regio AND gemeente filter combined: intersection semantics."""
+    _REGION_LABEL_MAP = {"Vlaanderen": "vl", "Brussel": "brussels", "Wallonië": "wl"}
+
+    projects = [
+        {"external_id": "gent:OMV_1", "region": "vl", "address": {"municipality": "Gent"}},
+        {"external_id": "vl_inz:OMV_2", "region": "vl", "address": {"municipality": "Antwerpen"}},
+        {"external_id": "brussels:01/PU/1984289", "region": "brussels", "address": {"municipality": "Anderlecht"}},
+    ]
+
+    selected_regio = ["Vlaanderen"]
+    selected_region_enums = {_REGION_LABEL_MAP[label] for label in selected_regio}
+    selected_gemeenten = ["Antwerpen"]
+    selected_lower = {g.lower() for g in selected_gemeenten}
+
+    def _muni(p: dict) -> str:
+        addr = p.get("address") or {}
+        if isinstance(addr, dict):
+            return (addr.get("municipality") or "").lower()
+        return ""
+
+    # Region filter first
+    after_region = [p for p in projects if p.get("region") in selected_region_enums]
+    assert len(after_region) == 2
+
+    # Then gemeente filter
+    after_gemeente = [p for p in after_region if _muni(p) in selected_lower]
+    assert len(after_gemeente) == 1
+    assert after_gemeente[0]["external_id"] == "vl_inz:OMV_2"

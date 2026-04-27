@@ -81,6 +81,7 @@ class PermitProject(BaseModel):
 
     external_id: str  # natural key, e.g. "gent:OMV_2026025532"
     source: Literal["gent_consultatie", "vlaanderen_inzage", "brussels_openpermits"]
+    region: Literal["vl", "wl", "brussels"] = "vl"
     omv_reference: str
     detail_url: HttpUrl
     title: str

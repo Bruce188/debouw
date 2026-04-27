@@ -30,7 +30,7 @@ from pydantic import BaseModel, ConfigDict
 
 from debouw.config import Settings
 from debouw.models.permit import GeoOverlays, PermitProject, RiskCategory
-from debouw.risk.taxonomy import TAXONOMY
+from debouw.risk.taxonomy import TAXONOMY, _build_taxonomy_markdown as _build_taxonomy_md
 
 if TYPE_CHECKING:
     from debouw.risk.precedents import PrecedentHit
@@ -79,18 +79,28 @@ INSTRUCTIONS = (
     "Citeer alleen arrest_id's die in de input voorkomen."
 )
 
+INSTRUCTIONS_FR = (
+    "Vous êtes un analyste juridico-technique spécialisé dans les permis d'urbanisme belges "
+    "(région de Bruxelles-Capitale, régime CoBAT). "
+    "Rédigez des rationales de risque concises en français (2-3 phrases par risque). "
+    "Référez-vous exclusivement aux fondements juridiques mentionnés dans le champ 'legal_basis_fr' "
+    "du risque concerné. Ne citez pas d'autres articles de loi. "
+    "Soyez objectif et factuel, sans anglicismes. "
+    "Fournissez une phrase de synthèse du profil de risque global dans 'summary_nl' "
+    "(utilisez 'summary_nl' comme clé JSON même pour le français — convention du schéma). "
+    "Lorsque des 'arrest_id' figurent dans 'precedents', citez-en au maximum deux littéralement "
+    "dans rationale_nl et placez-les dans 'citations'. "
+    "Ne citez que les arrest_id présents dans l'entrée."
+)
+
 
 def _build_taxonomy_markdown() -> str:
-    lines = ["## Risicotaxonomie\n"]
-    for cat, defn in TAXONOMY.items():
-        lines.append(f"### {cat.value}: {defn.label_nl}")
-        lines.append(f"- **Juridische grondslag:** {defn.legal_basis_nl}")
-        lines.append(f"- **Typische bezwaarmaker:** {defn.typical_objector_template_nl}")
-        lines.append("")
-    return "\n".join(lines)
+    """Legacy wrapper — delegates to taxonomy._build_taxonomy_markdown(nl, vl)."""
+    return _build_taxonomy_md(language="nl", region="vl")
 
 
 TAXONOMY_AS_MARKDOWN: str = _build_taxonomy_markdown()
+TAXONOMY_AS_MARKDOWN_FR: str = _build_taxonomy_md(language="fr", region="brussels")
 
 # Confidence threshold: factors below this get static template
 _LOW_CONFIDENCE_THRESHOLD = 0.3
@@ -133,20 +143,40 @@ def _validate_citations(narration: "ProjectNarration") -> "ProjectNarration":
 
 def _static_narration(
     factors: list,  # list[ScoredFactor]
+    project: "PermitProject | None" = None,
 ) -> ProjectNarration:
-    """Build a fully-static ProjectNarration from taxonomy templates."""
+    """Build a fully-static ProjectNarration from taxonomy templates.
+
+    When project.region is 'brussels', uses FR sibling fields
+    (static_rationale_fr, legal_basis_fr) if populated; falls back to NL fields
+    when the FR fields are absent (should not happen for Brussels-applicable
+    categories after Task 3.1, but defensive).
+    """
+    is_brussels = project is not None and project.region == "brussels"
     per_risk: dict[str, RiskNarration] = {}
     for factor in factors:
         defn = TAXONOMY[factor.category]
+        if is_brussels and defn.static_rationale_fr and defn.legal_basis_fr:
+            rationale = defn.static_rationale_fr
+            citation = defn.legal_basis_fr
+        else:
+            rationale = defn.static_rationale_nl
+            citation = defn.legal_basis_nl
         per_risk[factor.category.value] = RiskNarration(
-            rationale_nl=defn.static_rationale_nl,
-            citations=[defn.legal_basis_nl],
+            rationale_nl=rationale,
+            citations=[citation],
             certainty="laag",
         )
-    summary_nl = (
-        "Onvoldoende gegevens voor een gedetailleerde risicoanalyse; "
-        "verifieer de individuele risicofactoren manueel."
-    )
+    if is_brussels:
+        summary_nl = (
+            "Données insuffisantes pour une analyse de risque détaillée ; "
+            "vérifiez manuellement les facteurs de risque individuels."
+        )
+    else:
+        summary_nl = (
+            "Onvoldoende gegevens voor een gedetailleerde risicoanalyse; "
+            "verifieer de individuele risicofactoren manueel."
+        )
     return ProjectNarration(summary_nl=summary_nl, per_risk=per_risk)
 
 
@@ -224,6 +254,9 @@ class Narrator:
             except Exception as exc:
                 log.warning("narrator_cache_read_failed", error=str(exc))
 
+        # Region-language selection: Brussels → FR narrator path
+        is_brussels = project.region == "brussels"
+
         # 2. Confidence gate: factors with confidence < threshold get static
         low_factors = [f for f in factors if f.confidence < _LOW_CONFIDENCE_THRESHOLD]
         api_factors = [f for f in factors if f.confidence >= _LOW_CONFIDENCE_THRESHOLD]
@@ -231,7 +264,7 @@ class Narrator:
         # If all factors are low-confidence, skip API entirely
         if not api_factors:
             log.debug("narrator_all_low_confidence", project=project.external_id)
-            result = _static_narration(factors)
+            result = _static_narration(factors, project=project)
             if session is not None:
                 await self._write_cache(session, project.external_id, result)
             return result
@@ -240,22 +273,32 @@ class Narrator:
         narration: ProjectNarration | None = None
 
         if self._anthropic_client is not None:
-            narration = await self._call_anthropic(project, api_factors, precedents_by_category)
+            narration = await self._call_anthropic(
+                project, api_factors, precedents_by_category, language_fr=is_brussels
+            )
 
         if narration is None and self._openai_client is not None:
-            narration = await self._call_openai(project, api_factors, precedents_by_category)
+            narration = await self._call_openai(
+                project, api_factors, precedents_by_category, language_fr=is_brussels
+            )
 
         if narration is None:
-            narration = _static_narration(api_factors)
+            narration = _static_narration(api_factors, project=project)
 
         # Merge low-confidence factors with static templates
         if low_factors:
             merged_per_risk = dict(narration.per_risk)
             for factor in low_factors:
                 defn = TAXONOMY[factor.category]
+                if is_brussels and defn.static_rationale_fr and defn.legal_basis_fr:
+                    rationale = defn.static_rationale_fr
+                    citation = defn.legal_basis_fr
+                else:
+                    rationale = defn.static_rationale_nl
+                    citation = defn.legal_basis_nl
                 merged_per_risk[factor.category.value] = RiskNarration(
-                    rationale_nl=defn.static_rationale_nl,
-                    citations=[defn.legal_basis_nl],
+                    rationale_nl=rationale,
+                    citations=[citation],
                     certainty="laag",
                 )
             narration = ProjectNarration(
@@ -337,24 +380,34 @@ class Narrator:
         project: PermitProject,
         factors: list,
         precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
+        *,
+        language_fr: bool = False,
     ) -> ProjectNarration | None:
-        """Call Anthropic with prompt caching; retry on RateLimitError."""
+        """Call Anthropic with prompt caching; retry on RateLimitError.
+
+        When language_fr is True (Brussels project), uses INSTRUCTIONS_FR and
+        the French taxonomy markdown. Both system blocks remain cache_control
+        ephemeral — Brussels warms a separate cache entry on first call.
+        """
         import anthropic
         from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
         s = self._settings
         user_msg = self._build_user_message(project, factors, precedents_by_category)
 
+        instructions_text = INSTRUCTIONS_FR if language_fr else INSTRUCTIONS
+        taxonomy_text = TAXONOMY_AS_MARKDOWN_FR if language_fr else TAXONOMY_AS_MARKDOWN
+
         # System prompt with cache_control on both blocks
         system = [
             {
                 "type": "text",
-                "text": INSTRUCTIONS,
+                "text": instructions_text,
                 "cache_control": {"type": "ephemeral"},
             },
             {
                 "type": "text",
-                "text": TAXONOMY_AS_MARKDOWN,
+                "text": taxonomy_text,
                 "cache_control": {"type": "ephemeral"},
             },
         ]
@@ -419,11 +472,15 @@ class Narrator:
         project: PermitProject,
         factors: list,
         precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
+        *,
+        language_fr: bool = False,
     ) -> ProjectNarration | None:
         """Call OpenAI fallback; no retry on non-rate-limit errors."""
         s = self._settings
         user_msg = self._build_user_message(project, factors, precedents_by_category)
-        system_text = INSTRUCTIONS + "\n\n" + TAXONOMY_AS_MARKDOWN
+        instructions_text = INSTRUCTIONS_FR if language_fr else INSTRUCTIONS
+        taxonomy_text = TAXONOMY_AS_MARKDOWN_FR if language_fr else TAXONOMY_AS_MARKDOWN
+        system_text = instructions_text + "\n\n" + taxonomy_text
 
         try:
             response = await self._openai_client.beta.chat.completions.parse(

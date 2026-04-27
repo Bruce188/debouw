@@ -4,6 +4,7 @@ SQLAlchemy 2.0 declarative schema for debouw.
 Field-by-field mapping (PermitProject → permit_projects columns):
   PermitProject.external_id              → external_id    String PK
   PermitProject.source                   → source         String
+  PermitProject.region                   → region         String NOT NULL server_default="vl"
   PermitProject.omv_reference            → omv_reference  String
   PermitProject.detail_url               → detail_url     String
   PermitProject.title                    → title          String
@@ -54,6 +55,7 @@ class PermitProjectRow(Base):
 
     external_id: Mapped[str] = mapped_column(String, primary_key=True)
     source: Mapped[str] = mapped_column(String, nullable=False)
+    region: Mapped[str] = mapped_column(String, nullable=False, server_default="vl")
     omv_reference: Mapped[str] = mapped_column(String, nullable=False)
     detail_url: Mapped[str] = mapped_column(String, nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)

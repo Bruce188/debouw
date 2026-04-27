@@ -20,6 +20,12 @@ _INZAGELOKET_ATTACHMENT_HOSTS: frozenset[str] = frozenset({
     "omgevingsloketinzage.omgeving.vlaanderen.be",
 })
 
+# Brussels attachment host allowlist (Phase 5).
+# openpermits.brussels serves documents on the same origin.
+_BRUSSELS_ATTACHMENT_HOSTS: frozenset[str] = frozenset({
+    "openpermits.brussels",
+})
+
 
 def is_inzageloket_attachment_allowed(url: str) -> bool:
     """Return True if `url` is an allowed attachment URL for Inzageloket.
@@ -50,6 +56,44 @@ def is_inzageloket_attachment_allowed(url: str) -> bool:
     if netloc not in _INZAGELOKET_ATTACHMENT_HOSTS:
         log.warning(
             "inzageloket_attachment_rejected",
+            url=url,
+            reason="host_not_allowed",
+            host=netloc,
+        )
+        return False
+
+    return True
+
+
+def is_brussels_attachment_allowed(url: str) -> bool:
+    """Return True if `url` is an allowed attachment URL for Brussels (openpermits.brussels).
+
+    Checks:
+    - Scheme must be ``https`` only (http rejected — Brussels site is HTTPS-only).
+    - netloc ∈ _BRUSSELS_ATTACHMENT_HOSTS (host equality, case-insensitive).
+
+    On reject: log structured warning ("brussels_attachment_rejected")
+    and return False.
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception as exc:
+        log.warning("brussels_url_parse_failed", url=url, error=str(exc))
+        return False
+
+    if parsed.scheme != "https":
+        log.warning(
+            "brussels_attachment_rejected",
+            url=url,
+            reason="bad_scheme",
+            scheme=parsed.scheme,
+        )
+        return False
+
+    netloc = parsed.netloc.lower()
+    if netloc not in _BRUSSELS_ATTACHMENT_HOSTS:
+        log.warning(
+            "brussels_attachment_rejected",
             url=url,
             reason="host_not_allowed",
             host=netloc,
