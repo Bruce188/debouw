@@ -101,7 +101,7 @@ def render_risk_table(
             return ""
         return f"background-color: {color_for_score(float(val))}"
 
-    styled = df.drop(columns=["external_id"]).style.applymap(
+    styled = df.drop(columns=["external_id"]).style.map(
         _color_score, subset=["Score"]
     )
 
