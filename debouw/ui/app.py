@@ -53,6 +53,12 @@ def _assessments(_engine_id: str, _project_ids: tuple) -> dict[str, dict]:
 
 def main() -> None:
     settings = Settings()
+    st.set_page_config(
+        page_title="debouw — Belgische permit risico-monitor",
+        page_icon="🏗️",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
     st.title("debouw — Belgische omgevingsvergunningen risico-monitor")
     st.caption(
         f"Engine: {settings.engine_version} | Data: {settings.data_root}"
@@ -70,22 +76,35 @@ def main() -> None:
 
     # Sidebar filters
     with st.sidebar:
-        # Build gemeente options from in-memory projects (deduped, sorted).
         projects_for_filter = _projects(_engine_id=engine_key)
-        _municipalities_raw = {
-            (p.get("address") or {}).get("municipality")
-            for p in projects_for_filter
-            if isinstance(p.get("address"), dict)
-            and p.get("address", {}).get("municipality")
-        }
-        _municipalities: list[str] = sorted(
-            m for m in _municipalities_raw if isinstance(m, str)
-        )
         selected_regio = st.multiselect(
             "Regio",
             options=list(_REGION_LABEL_MAP.keys()),
             default=[],
             help="Laat leeg om alle regio's te tonen",
+        )
+        # Filter the gemeente options by the selected region(s) — Brussel
+        # gemeenten should not appear in the dropdown when only Vlaanderen
+        # is selected, otherwise the filter combination produces an empty
+        # set and looks broken to the user.
+        if selected_regio:
+            _selected_region_enums = {
+                _REGION_LABEL_MAP[label] for label in selected_regio
+            }
+            _gemeente_pool = [
+                p for p in projects_for_filter
+                if p.get("region") in _selected_region_enums
+            ]
+        else:
+            _gemeente_pool = projects_for_filter
+        _municipalities_raw = {
+            (p.get("address") or {}).get("municipality")
+            for p in _gemeente_pool
+            if isinstance(p.get("address"), dict)
+            and p.get("address", {}).get("municipality")
+        }
+        _municipalities: list[str] = sorted(
+            m for m in _municipalities_raw if isinstance(m, str)
         )
         selected_gemeenten = st.multiselect(
             "Gemeenten", options=_municipalities, default=[],
@@ -105,6 +124,17 @@ def main() -> None:
         if "wl" in selected_region_enums:
             st.warning("Nog geen Waalse dossiers — Fase 6+")
         projects = [p for p in projects if p.get("region") in selected_region_enums]
+        # Vlaanderen-Inzageloket runs via Playwright (Phase 4) and is not yet
+        # in continuous production. Surface the row count so users do not
+        # mistake the sparse list for a filter bug.
+        if "vl" in selected_region_enums:
+            vl_count = sum(1 for p in projects if p.get("region") == "vl")
+            if vl_count < 10:
+                st.info(
+                    f"ℹ️ Vlaamse Inzageloket-ingest (Playwright) draait nog niet "
+                    f"continu — {vl_count} dossier(s) beschikbaar. "
+                    f"Brusselse dossiers worden dagelijks gerefresht."
+                )
 
     # Apply gemeente filter
     if selected_gemeenten:
