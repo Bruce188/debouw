@@ -45,6 +45,46 @@ log = structlog.get_logger(__name__)
 # NUMBER = 7-digit sequence
 _BRU_REF_PATTERN = re.compile(r"^([0-1][0-9])/([A-Z][A-Z0-9_]{1,9})/([0-9]{7})$")
 
+# Belgian address pattern: "<street + house>  NNNN  <Municipality>"
+# Example: "Chaussée de Waterloo 1142 1180 Uccle" → street_full="Chaussée de
+# Waterloo 1142", postcode="1180", municipality="Uccle". Lazy ``street`` lets
+# the postcode anchor on the rightmost 4-digit token followed by an alphabetic
+# municipality, which correctly skips numeric house numbers like "1142".
+_BE_ADDRESS_PATTERN = re.compile(
+    r"^(?P<street>.+?)\s+(?P<postcode>\d{4})\s+"
+    r"(?P<municipality>[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-']+?)\s*$"
+)
+
+
+def _parse_be_address(raw: str) -> dict[str, str | None]:
+    """
+    Parse a flattened Belgian address ("<street + house> NNNN <Municipality>")
+    into structured fields. Returns dict with street/postcode/municipality keys
+    populated when the regex matches; values default to ``None``.
+
+    The municipality + postcode are required by the dashboard's gemeente filter
+    and by Geopunt overlays — without them the row's ``Address(raw=...)``
+    payload yields an unfilterable, geoless project. Splitting in the ingester
+    keeps the parser deterministic and unit-testable.
+    """
+    out: dict[str, str | None] = {
+        "street": None,
+        "postcode": None,
+        "municipality": None,
+    }
+    if not raw:
+        return out
+    m = _BE_ADDRESS_PATTERN.match(raw)
+    if m:
+        # Strip trailing punctuation from the street capture — Belgian
+        # addresses occasionally use a comma between house number and
+        # postcode ("Korenmarkt 1, 9000 Gent") and the lazy regex picks
+        # the comma up as part of the street.
+        out["street"] = m["street"].rstrip(",.;").strip()
+        out["postcode"] = m["postcode"]
+        out["municipality"] = m["municipality"]
+    return out
+
 # How far back we page when limit is not set — current + previous year-months
 _DEFAULT_MONTHS_BACK = 1
 
@@ -163,6 +203,7 @@ class BrusselsSource(Source):
             )
         # h1 content: "Address<br>Zipcode Municipality" — flatten to string
         address_raw = h1_el.get_text(separator=" ", strip=True)
+        _addr_parsed = _parse_be_address(address_raw)
 
         # --- Title / description ---
         # Use the description-case paragraph for project description
@@ -272,7 +313,12 @@ class BrusselsSource(Source):
             title=title,
             description=description,
             applicant_name=None,  # GDPR: not displayed on portal
-            address=Address(raw=address_raw),
+            address=Address(
+                raw=address_raw,
+                street=_addr_parsed["street"],
+                postcode=_addr_parsed["postcode"],
+                municipality=_addr_parsed["municipality"],
+            ),
             project_type=case_type,
             status=status,
             trees_to_fell=trees_to_fell,
