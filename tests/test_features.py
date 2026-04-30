@@ -178,3 +178,137 @@ def test_mer_status_none_ord_when_set():
     p = _simple_project(mer_status="mer_plicht")
     f = extract(p, None)
     assert f.mer_status_none_ord == pytest.approx(0.0, abs=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 tests: Brussels score-differentiation
+# ---------------------------------------------------------------------------
+
+def _bru_project(**kwargs) -> PermitProject:
+    """Helper for a minimal Brussels project."""
+    defaults = dict(
+        external_id="brussels:01/PU/test",
+        source="brussels_openpermits",
+        region="brussels",
+        omv_reference="01/PU/0000001",
+        detail_url="https://openpermits.brussels/fr/_01/PU/0000001",
+        title="Test Brussels project",
+        description=None,
+        applicant_name=None,
+        address=Address(
+            raw="Rue du Midi 12 1000 Bruxelles",
+            street="Rue du Midi 12",
+            postcode="1000",
+            municipality="Bruxelles",
+        ),
+        project_type="PU",
+        floors=None,
+        height_m=None,
+        units=None,
+        parking_spaces=None,
+        trees_to_fell=None,
+        mer_status=None,
+        iioa_class=None,
+        status=PermitProjectStatus.INTAKE,
+        decision_date=None,
+        decision_outcome=None,
+        attachments=[],
+        dossier_pdfs=[],
+        overlays=None,
+        raw_html_path=Path("/tmp/brussels_test.html"),
+        first_seen_at=_T,
+        last_changed_at=_T,
+        content_hash="b" * 64,
+        decision_regime="post_2026_reform",
+    )
+    defaults.update(kwargs)
+    return PermitProject(**defaults)
+
+
+def test_brussels_ongunstig_fr() -> None:
+    """FR binding-advice pattern triggers mentions_ongunstig_advies for brussels region."""
+    p = _bru_project(description="avis défavorable de Bruxelles Environnement sur ce dossier")
+    f = extract(p, None)
+    assert f.mentions_ongunstig_advies is True
+
+
+def test_brussels_ongunstig_nl_br() -> None:
+    """NL-Brussels binding-advice pattern triggers mentions_ongunstig_advies."""
+    p = _bru_project(description="ongunstig advies van Leefmilieu Brussel werd uitgebracht")
+    f = extract(p, None)
+    assert f.mentions_ongunstig_advies is True
+
+
+def test_vl_ongunstig_unchanged() -> None:
+    """VL ongunstig advies ANB still triggers for 'vl' region (byte parity)."""
+    p = _simple_project(description="ongunstig advies van ANB inzake de omgeving")
+    f = extract(p, None)
+    assert f.mentions_ongunstig_advies is True
+
+
+def test_mer_status_from_has_impact_study() -> None:
+    """mer_status='mer_plicht' flows correctly through FeatureSet."""
+    p = _bru_project(mer_status="mer_plicht")
+    f = extract(p, None)
+    assert f.mer_status == "mer_plicht"
+    assert f.mer_status_none_ord == pytest.approx(0.0, abs=1e-9)
+
+
+def test_mer_heuristic_fires_on_floor_area_5000(monkeypatch) -> None:
+    """MER heuristic infers 'screening' when mer_status=None and floor_area>=5000."""
+    monkeypatch.setenv("ENABLE_IIOA_HEURISTIC", "1")
+    p = _bru_project(mer_status=None, floor_area_m2=6000.0)
+    f = extract(p, None)
+    # Heuristic fires → effective_mer_status = "screening" → mer_status_none_ord = 0.0
+    assert f.mer_status_none_ord == pytest.approx(0.0, abs=1e-9)
+    assert f.mer_status == "screening"
+
+
+def test_iioa_heuristic_fires_on_floor_area_1500(monkeypatch) -> None:
+    """IIOA heuristic infers class 2 for large Brussels projects without explicit class."""
+    monkeypatch.setenv("ENABLE_IIOA_HEURISTIC", "1")
+    p = _bru_project(iioa_class=None, floor_area_m2=2000.0)
+    f = extract(p, None)
+    assert f.iioa_class == 2
+
+
+def test_iioa_heuristic_gated_by_toggle(monkeypatch) -> None:
+    """IIOA heuristic does NOT fire when ENABLE_IIOA_HEURISTIC=0."""
+    monkeypatch.setenv("ENABLE_IIOA_HEURISTIC", "0")
+    p = _bru_project(iioa_class=None, floor_area_m2=2000.0)
+    f = extract(p, None)
+    assert f.iioa_class is None
+
+
+def test_featureset_new_fields_default_none() -> None:
+    """error_weight and floor_area_m2 default to None in a baseline FeatureSet."""
+    from debouw.risk.features import FeatureSet
+    fs = FeatureSet()
+    assert fs.error_weight is None
+    assert fs.floor_area_m2 is None
+
+
+def test_featureset_new_fields_roundtrip() -> None:
+    """FeatureSet(error_weight=1.5, floor_area_m2=4200.0) stores and returns values."""
+    from debouw.risk.features import FeatureSet
+    fs = FeatureSet(error_weight=1.5, floor_area_m2=4200.0)
+    assert fs.error_weight == 1.5
+    assert fs.floor_area_m2 == 4200.0
+
+
+def test_extract_passthrough_new_fields() -> None:
+    """extract() passes error_weight and floor_area_m2 from PermitProject to FeatureSet."""
+    p = _bru_project(error_weight=12.5, floor_area_m2=4200.0)
+    f = extract(p, None)
+    assert f.error_weight == 12.5
+    assert f.floor_area_m2 == 4200.0
+
+
+def test_extract_purity() -> None:
+    """extract() source must not contain forbidden I/O tokens."""
+    import inspect
+    from debouw.risk.features import extract as extract_fn
+    src = inspect.getsource(extract_fn)
+    forbidden = ["requests", "httpx", "select(", "session.execute"]
+    for token in forbidden:
+        assert token not in src, f"extract() contains forbidden token: {token!r}"

@@ -15,6 +15,7 @@ from debouw.config import Settings
 from debouw.ingest.circuit_breaker import CircuitBreaker
 from debouw.ingest.enrich_geopunt import enrich
 from debouw.ingest.geocode import geocode
+from debouw.ingest.pdf_features import extract_pdf_features
 from debouw.ingest.sources import SchemaDriftError
 from debouw.ingest.sources.brussels import BrusselsSource
 from debouw.ingest.sources.gent import GentSource
@@ -119,12 +120,42 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
                 point = await geocode(project_no_overlay.address.raw, settings)
                 overlays = await enrich(point, settings)
 
+                # Extract features from cached PDFs (post-enrich, for latency)
+                case_language = project_no_overlay.case_language or "fr"
+                pdf_features = await extract_pdf_features(
+                    project_no_overlay.dossier_pdfs, lang=case_language
+                )
+
+                # Merge PDF-mined values: explicit JSON values take priority;
+                # only fill when the project's existing attribute is None.
+                pdf_mentions = pdf_features.get("mentions_ongunstig")
+                pdf_units = pdf_features.get("units")
+                pdf_floors = pdf_features.get("floors")
+                pdf_iioa = pdf_features.get("iioa_class")
+
+                # Build merged description (append region-agnostic binding-advice
+                # tokens if PDF mentions adverse advice). "ongunstig advies" matches
+                # _ONGUNSTIG_VL_RE / _ONGUNSTIG_NL_BR_RE; "avis défavorable" matches
+                # _ONGUNSTIG_FR_RE. Appending both lets the region-conditional regex
+                # set in features.extract() pick up the signal for any region.
+                merged_description = project_no_overlay.description
+                _ONGUNSTIG_TOKENS = "ongunstig advies avis défavorable"
+                if pdf_mentions and merged_description is not None:
+                    merged_description = merged_description + " " + _ONGUNSTIG_TOKENS
+                elif pdf_mentions and merged_description is None:
+                    merged_description = _ONGUNSTIG_TOKENS
+
                 project = project_no_overlay.model_copy(
                     update={
                         "overlays": overlays,
                         "address": project_no_overlay.address.model_copy(
                             update={"point": point}
                         ),
+                        # Prefer explicit values; fill from PDF only when project field is None
+                        "units": project_no_overlay.units if project_no_overlay.units is not None else pdf_units,
+                        "floors": project_no_overlay.floors if project_no_overlay.floors is not None else pdf_floors,
+                        "iioa_class": project_no_overlay.iioa_class if project_no_overlay.iioa_class is not None else pdf_iioa,
+                        "description": merged_description,
                         # Preserve first_seen_at from the existing row to avoid clobber
                         **(
                             {"first_seen_at": existing.first_seen_at}

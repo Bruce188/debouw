@@ -59,6 +59,9 @@ async def upsert_project(session: AsyncSession, project: PermitProject) -> None:
         last_changed_at=project.last_changed_at,
         content_hash=data["content_hash"],
         decision_regime=data["decision_regime"],
+        error_weight=data["error_weight"],
+        floor_area_m2=data["floor_area_m2"],
+        case_language=data["case_language"],
     )
     stmt = stmt.on_conflict_do_update(
         index_elements=["external_id"],
@@ -71,6 +74,7 @@ async def upsert_project(session: AsyncSession, project: PermitProject) -> None:
                 "status", "decision_date", "decision_outcome", "attachments",
                 "dossier_pdfs", "overlays", "raw_html_path", "first_seen_at",
                 "last_changed_at", "content_hash", "decision_regime",
+                "error_weight", "floor_area_m2", "case_language",
             ]
         },
     )
@@ -125,6 +129,9 @@ async def get_project(session: AsyncSession, external_id: str) -> PermitProject 
         ),
         "content_hash": row.content_hash,
         "decision_regime": row.decision_regime,
+        "error_weight": row.error_weight,
+        "floor_area_m2": row.floor_area_m2,
+        "case_language": row.case_language,
     }
     return PermitProject.model_validate(row_dict)
 

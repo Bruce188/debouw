@@ -224,3 +224,31 @@ wordt nooit gepersisteerd. `openpermits.brussels` toont ook geen naam.
 
 **mybrugis.brussels:** DNS-onbereikbaar tijdens de Phase-1-spike (april 2026);
 alternatieve bronnen niet geactiveerd.
+
+## Brussel — Fase 6 (score-differentiatie)
+
+Versie `0.6.0` van de engine voegt score-differentiatie toe voor Brusselse
+dossiers. Oude `0.3.0-rules-precedents-v1`-rijen blijven in de database
+voor audit-traceerbaarheid maar worden niet meer weergegeven in het dashboard.
+
+**Heuristische inferentie (ENABLE_IIOA_HEURISTIC):**
+Wanneer een dossier geen expliciete MER-status (`mer_status=None`) heeft maar
+een bruto vloeroppervlak ≥ 5 000 m² vermeldt, leidt de engine automatisch
+`"screening"` af als MER-status. Wanneer een Brussels dossier geen expliciet
+IIOA-klasse heeft maar een vloeroppervlak ≥ 1 500 m² vermeldt, leidt de engine
+automatisch IIOA-klasse 2 af. Beide heuristieken worden **gelogd** als
+`mer_heuristic_fired` / `iioa_heuristic_fired` in structlog.
+
+Stel `ENABLE_IIOA_HEURISTIC=0` in `.env` om de heuristieken uit te schakelen
+(aanbevolen voor kalibratieruns waarbij expliciete labels vereist zijn).
+
+**PDF-features (post-enrich):**
+Na de Geopunt-verrijkingsstap worden de reeds gecachte bijlage-PDF's van
+Brusselse dossiers gemijnd op signalen: `units`, `floors`, `iioa_class`,
+`mentions_ongunstig`. Deze extractie vindt bewust **na** `enrich()` plaats
+voor latentieredenen (~2-8 s per dossier, niet per scrape-request).
+
+**engine_version 0.6.0:**
+De enige wijzigingen ten opzichte van `0.3.0-rules-precedents-v1` zijn
+Brussels-specifieke feature-engineering toevoegingen; de regelscores voor
+Vlaamse dossiers zijn ongewijzigd.

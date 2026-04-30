@@ -107,6 +107,9 @@ class PermitProject(BaseModel):
     last_changed_at: datetime
     content_hash: str
     decision_regime: Literal["pre_2026_reform", "post_2026_reform"]  # for calibration
+    error_weight: float | None = None
+    floor_area_m2: float | None = None
+    case_language: Literal["fr", "nl"] | None = None
 
 
 class PublicInquiry(BaseModel):

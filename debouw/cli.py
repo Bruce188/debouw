@@ -88,6 +88,79 @@ def backfill_rvvb(
     typer.echo(f"backfilled {n} arrests")
 
 
+@app.command(name="reparse-brussels")
+def reparse_brussels() -> None:
+    """Re-parse raw Brussels HTML and update the database with new field extractions.
+
+    Recipe:
+        debouw reparse-brussels && debouw classify --reclassify-all
+
+    Selects all permit_projects rows where source='brussels_openpermits', reads
+    the cached raw_html_path, re-runs _parse_brussels_html, and upserts the
+    updated PermitProject row. Returns count of rows touched.
+    """
+    import asyncio
+    from debouw.storage.db import make_engine, make_sessionmaker
+    from debouw.storage.repository import upsert_project
+    from debouw.ingest.sources.brussels import _parse_brussels_html
+
+    settings = Settings()
+    configure_logging(settings)
+
+    async def _run() -> int:
+        from sqlalchemy import select
+        engine = make_engine(settings)
+        Session = make_sessionmaker(engine)
+        count = 0
+        try:
+            async with Session() as s:
+                from debouw.storage.schema import PermitProjectRow
+                result = await s.execute(
+                    select(PermitProjectRow).where(
+                        PermitProjectRow.source == "brussels_openpermits"
+                    )
+                )
+                rows = result.scalars().all()
+
+            for row in rows:
+                raw_html_path = row.raw_html_path
+                try:
+                    with open(raw_html_path, encoding="utf-8") as fh:
+                        html = fh.read()
+                except (OSError, TypeError) as exc:
+                    typer.echo(f"warn: skip {row.external_id} — {exc}", err=True)
+                    continue
+
+                try:
+                    parsed = _parse_brussels_html(html, row.external_id)
+                except Exception as exc:
+                    typer.echo(f"warn: parse failed {row.external_id} — {exc}", err=True)
+                    continue
+
+                # Reconstruct current project from DB row
+                from debouw.storage.repository import get_project as _get
+                async with Session() as s:
+                    async with s.begin():
+                        existing = await _get(s, row.external_id)
+                        if existing is None:
+                            continue
+                        updated = existing.model_copy(update={
+                            "error_weight": parsed["error_weight"],
+                            "floor_area_m2": parsed["floor_area_m2"],
+                            "mer_status": parsed["mer_status"] or existing.mer_status,
+                            "case_language": parsed["case_language"],
+                            "description": parsed["description"] or existing.description,
+                        })
+                        await upsert_project(s, updated)
+                        count += 1
+        finally:
+            await engine.dispose()
+        return count
+
+    n = asyncio.run(_run())
+    typer.echo(f"reparse-brussels: touched {n} rows")
+
+
 @app.command(name="eval")
 def eval_cmd(
     gold_set: str = typer.Option("debouw/risk/eval/gold_set.jsonl"),

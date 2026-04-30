@@ -49,7 +49,8 @@ class Settings(BaseSettings):
     )
 
     # --- Engine + logging ---
-    engine_version: str = "0.3.0-rules-precedents-v1"
+    engine_version: str = "0.6.0"
+    enable_iioa_heuristic: bool = True  # env: ENABLE_IIOA_HEURISTIC; gates MER + IIOA auto-derive
     log_format: Literal["json", "console"] = "console"
 
     # --- Identification (Inzageloket robots policy) ---

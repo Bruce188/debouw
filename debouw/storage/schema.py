@@ -30,6 +30,9 @@ Field-by-field mapping (PermitProject → permit_projects columns):
   PermitProject.last_changed_at          → last_changed_at DateTime
   PermitProject.content_hash             → content_hash   String
   PermitProject.decision_regime          → decision_regime String
+  PermitProject.error_weight             → error_weight   Float nullable
+  PermitProject.floor_area_m2           → floor_area_m2  Float nullable
+  PermitProject.case_language            → case_language  String nullable
 """
 
 from datetime import date, datetime
@@ -81,6 +84,9 @@ class PermitProjectRow(Base):
     last_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     content_hash: Mapped[str] = mapped_column(String, nullable=False)
     decision_regime: Mapped[str] = mapped_column(String, nullable=False)
+    error_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    floor_area_m2: Mapped[float | None] = mapped_column(Float, nullable=True)
+    case_language: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class RiskAssessmentRow(Base):

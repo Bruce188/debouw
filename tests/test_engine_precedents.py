@@ -58,10 +58,11 @@ def _narrator_mock() -> Narrator:
 # ---------------------------------------------------------------------------
 
 def test_engine_version_bumped_to_0_3_0():
+    """Engine version is now 0.6.0 (bumped in Phase 6 / feat/brussels-score-differentiation)."""
     s = _settings()
     engine = RealRiskEngine(s, narrator=_narrator_mock())
     assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
-    assert assessment.engine_version == "0.3.0-rules-precedents-v1"
+    assert assessment.engine_version == "0.6.0"
 
 
 # ---------------------------------------------------------------------------

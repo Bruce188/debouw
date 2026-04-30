@@ -9,6 +9,11 @@ Covers:
 4. User-Agent carried on every HTTP call.
 5. Cross-source normalisation: PermitProject model_dump round-trip.
 6. Content_hash idempotency.
+7. FR/NL regex set for units/floors/iioa_class in description.
+8. Lambert-72 centroid → WGS84 conversion.
+9. Floor-area aggregation (_sum_authorized_floor_area).
+10. error_weight + case_language extraction.
+11. hasImpactStudy → mer_status="mer_plicht" mapping.
 """
 
 from __future__ import annotations
@@ -22,7 +27,13 @@ import respx
 from httpx import Response
 
 from debouw.config import Settings
-from debouw.ingest.sources.brussels import BrusselsSource, _BRU_REF_PATTERN
+from debouw.ingest.sources.brussels import (
+    BrusselsSource,
+    _BRU_REF_PATTERN,
+    _lambert72_centroid_to_wgs84,
+    _parse_description_for_units_floors_iioa,
+    _sum_authorized_floor_area,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -33,6 +44,7 @@ _FIXTURES = Path(__file__).parent / "fixtures" / "brussels"
 _LISTING_HTML = (_FIXTURES / "listing_full.html").read_text(encoding="utf-8")
 _DETAIL_HTML = (_FIXTURES / "detail_full.html").read_text(encoding="utf-8")
 _DETAIL_MINIMAL_HTML = (_FIXTURES / "detail_minimal.html").read_text(encoding="utf-8")
+_DETAIL_ERROR_WEIGHT_HTML = (_FIXTURES / "detail_error_weight.html").read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -275,3 +287,179 @@ async def test_content_hash_idempotency(tmp_path: Path) -> None:
     mutated_html = _DETAIL_HTML.replace("Victor", "MUTATED_NAME")
     mutated_hash = hashlib.sha256(mutated_html.encode()).hexdigest()
     assert mutated_hash != expected_hash
+
+
+# ---------------------------------------------------------------------------
+# 7. FR/NL regex set for units/floors/iioa_class
+# ---------------------------------------------------------------------------
+
+def test_parse_description_units_floors_iioa_fr() -> None:
+    """FR description extracts units, floors, iioa_class correctly."""
+    desc = "Construction de 8 logements répartis sur 5 étages, classe II"
+    result = _parse_description_for_units_floors_iioa(desc, lang="fr")
+    assert result["units"] == 8, f"Expected 8, got {result['units']}"
+    assert result["floors"] == 5, f"Expected 5, got {result['floors']}"
+    assert result["iioa_class"] == 2, f"Expected 2, got {result['iioa_class']}"
+
+
+def test_parse_description_units_floors_iioa_nl() -> None:
+    """NL-Brussels description extracts units, floors, iioa_class correctly."""
+    desc = "Bouw van 12 wooneenheden verspreid over 3 bouwlagen, klasse I"
+    result = _parse_description_for_units_floors_iioa(desc, lang="nl")
+    assert result["units"] == 12, f"Expected 12, got {result['units']}"
+    assert result["floors"] == 3, f"Expected 3, got {result['floors']}"
+    assert result["iioa_class"] == 1, f"Expected 1, got {result['iioa_class']}"
+
+
+def test_parse_description_no_signals() -> None:
+    """Empty description returns None for all fields."""
+    result = _parse_description_for_units_floors_iioa("", lang="fr")
+    assert result["units"] is None
+    assert result["floors"] is None
+    assert result["iioa_class"] is None
+
+
+# ---------------------------------------------------------------------------
+# 8. Lambert-72 centroid → WGS84 conversion
+# ---------------------------------------------------------------------------
+
+def test_lambert72_centroid_brussels_grand_place() -> None:
+    """Known Lambert-72 ring around Brussels Grand Place → expected WGS84 coords."""
+    geometry = {
+        "coordinates": [
+            [
+                [148000, 170400],
+                [148001, 170400],
+                [148001, 170401],
+                [148000, 170400],
+            ]
+        ]
+    }
+    pt = _lambert72_centroid_to_wgs84(geometry)
+    assert pt is not None, "Expected non-None GeoPoint"
+    assert 50.84 < pt.lat < 50.86, f"lat={pt.lat} outside expected range"
+    assert 4.34 < pt.lon < 4.36, f"lon={pt.lon} outside expected range"
+
+
+def test_lambert72_centroid_none_geometry() -> None:
+    """None geometry → None GeoPoint (graceful degrade)."""
+    pt = _lambert72_centroid_to_wgs84(None)
+    assert pt is None
+
+
+def test_lambert72_centroid_empty_ring() -> None:
+    """Empty coordinates ring → None (graceful degrade)."""
+    pt = _lambert72_centroid_to_wgs84({"coordinates": [[]]})
+    assert pt is None
+
+
+# ---------------------------------------------------------------------------
+# 9. Floor-area aggregation
+# ---------------------------------------------------------------------------
+
+def test_floor_area_aggregation_normal() -> None:
+    """Sum authorized values across typologies."""
+    floor_area = {
+        "housing": {"authorized": 3200.0, "projected": 3200.0},
+        "office": {"authorized": 1000.0, "projected": 1000.0},
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 4200.0
+
+
+def test_floor_area_aggregation_missing_keys() -> None:
+    """Missing authorized key treated as 0."""
+    floor_area = {
+        "housing": {"projected": 3200.0},  # no "authorized"
+        "office": {"authorized": 1000.0},
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 1000.0
+
+
+def test_floor_area_aggregation_negative_values() -> None:
+    """Negative authorized value treated as 0 contribution."""
+    floor_area = {
+        "housing": {"authorized": -500.0},
+        "office": {"authorized": 1000.0},
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 1000.0
+
+
+def test_floor_area_aggregation_string_value() -> None:
+    """Non-numeric authorized value treated as 0 contribution."""
+    floor_area = {
+        "housing": {"authorized": "n/a"},
+        "office": {"authorized": 800.0},
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 800.0
+
+
+def test_floor_area_aggregation_none() -> None:
+    """None floor_area → None result."""
+    assert _sum_authorized_floor_area(None) is None
+
+
+def test_floor_area_aggregation_empty() -> None:
+    """Empty dict → None result."""
+    assert _sum_authorized_floor_area({}) is None
+
+
+# ---------------------------------------------------------------------------
+# 10. error_weight + case_language extraction
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_brussels_detail_extracts_error_weight(tmp_path: Path) -> None:
+    """detail_pass extracts errorWeight from tabledatahistory and sets project.error_weight."""
+    settings = _settings(tmp_path)
+    ref = "01/PU/9999001"  # matches pattern
+
+    # Use the error_weight fixture HTML
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(f"{_BASE}/fr/_{ref}").mock(
+            return_value=Response(200, text=_DETAIL_ERROR_WEIGHT_HTML)
+        )
+        async with BrusselsSource(settings) as src:
+            project, _ = await src.detail_pass(ref)
+
+    assert project.error_weight == 12.5, f"Expected 12.5 got {project.error_weight}"
+
+
+@pytest.mark.asyncio
+async def test_brussels_detail_extracts_case_language(tmp_path: Path) -> None:
+    """detail_pass reads caseLanguage and defaults to 'fr' when absent."""
+    settings = _settings(tmp_path)
+    ref = "01/PU/9999001"
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(f"{_BASE}/fr/_{ref}").mock(
+            return_value=Response(200, text=_DETAIL_ERROR_WEIGHT_HTML)
+        )
+        async with BrusselsSource(settings) as src:
+            project, _ = await src.detail_pass(ref)
+
+    # Fixture has caseLanguage="nl"
+    assert project.case_language == "nl", f"Expected 'nl' got {project.case_language!r}"
+
+
+# ---------------------------------------------------------------------------
+# 11. hasImpactStudy → mer_status="mer_plicht"
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_brussels_detail_maps_has_impact_study_to_mer_plicht(tmp_path: Path) -> None:
+    """hasImpactStudy=true in tabledatahistory → project.mer_status='mer_plicht'."""
+    settings = _settings(tmp_path)
+    ref = "01/PU/9999001"
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(f"{_BASE}/fr/_{ref}").mock(
+            return_value=Response(200, text=_DETAIL_ERROR_WEIGHT_HTML)
+        )
+        async with BrusselsSource(settings) as src:
+            project, _ = await src.detail_pass(ref)
+
+    assert project.mer_status == "mer_plicht", f"Expected 'mer_plicht' got {project.mer_status!r}"
