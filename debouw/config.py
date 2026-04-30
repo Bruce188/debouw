@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     gent_consultatie_base: str = "https://gent.consultatieomgeving.net/burger"
     geopunt_base: str = "https://geo.api.vlaanderen.be"
     nominatim_base: str = "https://nominatim.openstreetmap.org"
-    rvvb_base: str = "https://www.dbrc.be/rechtspraak"
+    rvvb_base: str = "https://www.dbrc.be"
     inzageloket_base: str = "https://omgevingsloketinzage.omgeving.vlaanderen.be"
     openpermits_brussels_base: str = "https://openpermits.brussels"
     onroerend_erfgoed_base: str = "https://geo.onroerenderfgoed.be"
@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     sonnet_extraction_concurrency: int = 8
     sonnet_extraction_model: str = "claude-sonnet-4-5-20250929"
     precedent_search_k: int = 8
-    precedent_search_threshold: float = 0.78
+    precedent_search_threshold: float = 0.50
     gold_set_min_n: int = 30
     precedent_alpha: float = 0.4
     arrest_extractor_version: str = "0.1"
