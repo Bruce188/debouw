@@ -152,23 +152,30 @@ def test_index_pass_raises_not_implemented():
 
 def test_paginate_yields_page_index_for_cursor_resume():
     """
-    paginate() must yield ``(arrest_id, page_index)`` so backfill_run can
-    advance ``last_page_processed``. Without the page index, resume re-fetches
-    ``start_page`` indefinitely (B2 regression).
+    paginate() must yield ``(arrest_id, page_index, pdf_url)`` so backfill_run
+    can advance ``last_page_processed`` and download the canonical PDF. Without
+    the page index, resume re-fetches ``start_page`` indefinitely (B2
+    regression). Without the pdf_url, ``download_pdf`` would 404 against the
+    legacy flat ``/sites/default/files/arr/`` heuristic that doesn't exist on
+    the live dbrc.be site (post-merge fix).
     """
     import asyncio
 
     settings = Settings()
     source = RvvbSource(settings)
 
-    # Two-page fixture: page 0 has arrest A, page 1 has arrest B, page 2 empty.
+    # Two-page fixture: page 0 has arrest A with PDF link, page 1 arrest B
+    # with PDF link, page 2 empty. PDF hrefs match the live month-folder
+    # layout (``/sites/default/files/YYYY-MM/<arrest>.pdf``).
     page0 = (
         '<div class="view-content">'
-        '<a href="/x">RVVB.A.2425.0001</a></div>'
+        '<a href="https://www.dbrc.be/sites/default/files/2024-09/RVVB.A.2425.0001.pdf">'
+        "RVVB.A.2425.0001</a></div>"
     )
     page1 = (
         '<div class="view-content">'
-        '<a href="/x">RVVB.A.2425.0002</a></div>'
+        '<a href="https://www.dbrc.be/sites/default/files/2024-09/RVVB.A.2425.0002.pdf">'
+        "RVVB.A.2425.0002</a></div>"
     )
     page2 = '<div class="view-content"></div>'
 
@@ -195,15 +202,22 @@ def test_paginate_yields_page_index_for_cursor_resume():
 
     async def collect():
         out = []
-        async for arrest_id, page in source.paginate(start_page=0, limit=10):
-            out.append((arrest_id, page))
+        async for arrest_id, page, pdf_url in source.paginate(start_page=0, limit=10):
+            out.append((arrest_id, page, pdf_url))
         return out
 
     yielded = asyncio.run(collect())
-    # Yielded tuples carry the page they came from (0 then 1).
     assert yielded == [
-        ("RVVB.A.2425.0001", 0),
-        ("RVVB.A.2425.0002", 1),
+        (
+            "RVVB.A.2425.0001",
+            0,
+            "https://www.dbrc.be/sites/default/files/2024-09/RVVB.A.2425.0001.pdf",
+        ),
+        (
+            "RVVB.A.2425.0002",
+            1,
+            "https://www.dbrc.be/sites/default/files/2024-09/RVVB.A.2425.0002.pdf",
+        ),
     ]
 
 
