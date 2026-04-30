@@ -84,8 +84,10 @@ class RvvbSource(Source):
 
     source_key: ClassVar[str] = "rvvb"
 
-    # Listing endpoint: /rechtspraak?page=N
-    _LISTING_PATH = "/rechtspraak"
+    # Listing endpoint with document_type=49 facet (RVVB.A arresten only).
+    # The unfiltered /rechtspraak?page=N returns mixed RVVB.A + RVVB.S +
+    # RVERKB rows; the facet narrows to "arresten" — F4's target corpus.
+    _LISTING_PATH = "/rechtspraak?f%5B0%5D=document_type%3A49"
 
     async def index_pass(self, *, limit: int | None = None) -> AsyncIterator[str]:
         """
@@ -117,9 +119,16 @@ class RvvbSource(Source):
         start_page: int = 0,
         limit: int | None = None,
         year_filter: list[int] | None = None,
-    ) -> AsyncIterator[tuple[str, int]]:
+    ) -> AsyncIterator[tuple[str, int, str | None]]:
         """
-        Async generator: yields ``(arrest_id, page_index)`` tuples from the listing.
+        Async generator: yields ``(arrest_id, page_index, pdf_url)`` triples
+        from the listing.
+
+        ``pdf_url`` is the absolute href found alongside the arrest_id in the
+        listing HTML (e.g.
+        ``https://www.dbrc.be/sites/default/files/2026-04/RVVB.A.2526.0625.pdf``);
+        it may be ``None`` if the arrest_id was extracted from page text without
+        an adjacent PDF link. ``download_pdf`` accepts the absolute form.
 
         The page index lets the caller persist a resume cursor at page-boundary
         granularity (B2 review fix — without the page index, ``backfill_run``
@@ -138,26 +147,56 @@ class RvvbSource(Source):
         """
         count = 0
         page = start_page
+        # Path may already carry a query string (document_type facet); pick separator.
+        sep = "&" if "?" in self._LISTING_PATH else "?"
+        # Listing fetch retry: transient httpx errors (timeouts, 5xx) early-end
+        # an otherwise-deep paginated run. Retry the same page up to 3 times
+        # with exponential backoff before giving up — observed once mid-run on
+        # page 45 with an empty error string.
+        _MAX_LISTING_RETRIES = 3
         while True:
-            url = f"{self._LISTING_PATH}?page={page}"
-            try:
-                response = await self._client.get(url)
-            except (httpx.HTTPError, httpx.NetworkError) as exc:
-                log.warning("rvvb_listing_fetch_failed", page=page, error=str(exc))
+            url = f"{self._LISTING_PATH}{sep}page={page}"
+            response = None
+            for attempt in range(_MAX_LISTING_RETRIES):
+                try:
+                    response = await self._client.get(url)
+                    break
+                except (httpx.HTTPError, httpx.NetworkError) as exc:
+                    log.warning(
+                        "rvvb_listing_fetch_retry",
+                        page=page,
+                        attempt=attempt + 1,
+                        error=str(exc),
+                    )
+                    if attempt + 1 == _MAX_LISTING_RETRIES:
+                        log.warning(
+                            "rvvb_listing_fetch_failed", page=page, error=str(exc)
+                        )
+                        response = None
+                        break
+                    await asyncio.sleep(2 ** (attempt + 1))  # 2s, 4s
+            if response is None:
                 break
 
             soup = BeautifulSoup(response.text, "html.parser")
-            arrest_ids = _parse_listing_page(soup, url)
-            if not arrest_ids:
+            entries = _parse_listing_with_pdfs(soup, url)
+            if not entries:
                 log.debug("rvvb_listing_empty_page", page=page)
                 break
 
-            for arrest_id in arrest_ids:
+            for arrest_id, pdf_url in entries:
+                # Normalise the arrest_id case: dbrc.be has mixed-case PDF
+                # URLs (some rows ``RVVB.A.2425.0670``, some
+                # ``rvvb.a.2425.0668`` on the same listing page). The
+                # downstream LanceDB key + ``ArrestExtraction`` validator
+                # require canonical UPPERCASE; preserve the original ``pdf_url``
+                # so the on-disk PDF still downloads from the lowercase href.
+                arrest_id = arrest_id.upper()
                 if year_filter is not None:
                     year = _year_from_arrest_id(arrest_id)
                     if year is None or year not in year_filter:
                         continue
-                yield arrest_id, page
+                yield arrest_id, page, pdf_url
                 count += 1
                 if limit is not None and count >= limit:
                     return
@@ -185,8 +224,13 @@ class RvvbSource(Source):
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         if pdf_url is None:
-            # Derive PDF URL from arrest_id (heuristic; actual URL found in listing)
-            pdf_url = f"/sites/default/files/arr/{arrest_id}.pdf"
+            # Listing href is the canonical PDF URL — `dbrc.be` stores PDFs in
+            # month-stamped folders ``/sites/default/files/YYYY-MM/…`` rather
+            # than a flat directory, so callers must pass the parsed href.
+            raise ValueError(
+                f"rvvb: pdf_url required for {arrest_id}; "
+                "no flat-path heuristic exists for dbrc.be."
+            )
 
         try:
             response = await self._client.get(pdf_url)
@@ -198,52 +242,97 @@ class RvvbSource(Source):
         return dest
 
 
+def _parse_listing_with_pdfs(
+    soup: BeautifulSoup, url: str
+) -> list[tuple[str, str | None]]:
+    """
+    Extract ``(arrest_id, pdf_url)`` pairs from a listing page soup.
+
+    Container-agnostic: live ``dbrc.be`` wraps results in
+    ``<div class="view view-legislation-search …">`` with article cards,
+    while older test fixtures used ``<div class="view-content">``. Rather than
+    chase the Drupal theme version, we scan the whole document for two signals:
+
+    1. Any ``<a href="…RVVB.A.NNNN.NNNN.pdf">`` — harvest the absolute URL
+       so the caller can pass it straight to ``download_pdf`` instead of
+       guessing the month folder (PDFs live at ``/sites/default/files/YYYY-MM/``).
+    2. Any element text containing the arrest_id pattern — covers fallback
+       cases where the listing renders the ID inline without an adjacent
+       PDF anchor.
+
+    Raises SchemaDriftError if no arrest IDs are found anywhere on the page
+    (preserves the original drift-guard contract).
+    """
+    pdf_by_id: dict[str, str] = {}
+
+    # Pass 1: harvest pdf_urls from any <a href="*.pdf"> with arrest_id in URL.
+    for a in soup.find_all("a"):
+        href_raw = a.get("href", "")
+        href = str(href_raw) if href_raw else ""
+        if ".pdf" not in href.lower():
+            continue
+        href_ids = _ARREST_ID_PATTERN.findall(href)
+        if not href_ids:
+            continue
+        arrest_id = href_ids[0]
+        key = arrest_id.upper()
+        if key not in pdf_by_id:
+            pdf_by_id[key] = href
+
+    seen_ids: set[str] = set()
+    pairs: list[tuple[str, str | None]] = []
+
+    # Pass 2: walk the document in DOM order. ``find_all`` yields parents
+    # before children, so the outermost containing element produces every
+    # arrest_id in source order via concatenated text — child re-encounters
+    # are deduped via ``seen_ids``.
+    for tag in soup.find_all(["a", "span", "div", "li", "td", "p", "article"]):
+        text = tag.get_text(strip=True)
+        for arrest_id in _ARREST_ID_PATTERN.findall(text):
+            key = arrest_id.upper()
+            if key not in seen_ids:
+                seen_ids.add(key)
+                pairs.append((arrest_id, pdf_by_id.get(key)))
+        if tag.name == "a":
+            href_raw = tag.get("href", "")
+            href = str(href_raw) if href_raw else ""
+            for arrest_id in _ARREST_ID_PATTERN.findall(href):
+                key = arrest_id.upper()
+                if key not in seen_ids:
+                    seen_ids.add(key)
+                    pairs.append((arrest_id, pdf_by_id.get(key)))
+
+    if pairs:
+        return pairs
+
+    # No arrest IDs anywhere. Distinguish "legitimate empty page" (end of
+    # pagination) from "schema drift" (site redesigned, wrapper gone): if a
+    # known listing wrapper is present we trust Drupal that this page is
+    # simply empty; otherwise we surface drift so the circuit breaker fires.
+    def _is_listing_wrapper(css_class: str | list[str] | None) -> bool:
+        if css_class is None:
+            return False
+        if isinstance(css_class, str):
+            tokens = css_class.split()
+        else:
+            tokens = list(css_class)
+        return "view-content" in tokens or any(
+            "view-legislation-search" in t for t in tokens
+        )
+
+    if soup.find("div", class_=_is_listing_wrapper) is not None:
+        return []
+    raise SchemaDriftError(f"rvvb: no listing wrapper found at {url}")
+
+
 def _parse_listing_page(soup: BeautifulSoup, url: str) -> list[str]:
     """
-    Extract arrest_id strings from a listing page soup.
+    Backward-compatible wrapper: returns just the arrest_id strings.
 
-    Raises SchemaDriftError if no listing container is found.
-    Arrest IDs are extracted from link text and hrefs matching the
-    RVVB.A.YYYY.NNNN pattern.
+    Existing tests + callers that don't need the PDF URL keep working;
+    new code paths use ``_parse_listing_with_pdfs`` directly.
     """
-    # Primary container
-    container = soup.find("div", class_="view-content")
-    if container is None:
-        # Fallback: check if page has any content at all
-        main = soup.find("main") or soup.find("body")
-        if main is None:
-            raise SchemaDriftError(f"rvvb: div.view-content not found at {url}")
-        # Try to find arrest IDs directly in the page text
-        text = soup.get_text()
-        ids = _ARREST_ID_PATTERN.findall(text)
-        if not ids:
-            raise SchemaDriftError(f"rvvb: no arrest IDs found at {url}")
-        return list(dict.fromkeys(ids))  # deduplicate, preserve order
-
-    # Extract from links and text within container
-    ids: list[str] = []
-    seen: set[str] = set()
-
-    for tag in container.find_all(["a", "span", "div", "li", "td"]):
-        text = tag.get_text(strip=True)
-        found = _ARREST_ID_PATTERN.findall(text)
-        for arrest_id in found:
-            key = arrest_id.upper()
-            if key not in seen:
-                seen.add(key)
-                ids.append(arrest_id)
-
-        # Also check href
-        if tag.name == "a":
-            href = tag.get("href", "")
-            href_found = _ARREST_ID_PATTERN.findall(href)
-            for arrest_id in href_found:
-                key = arrest_id.upper()
-                if key not in seen:
-                    seen.add(key)
-                    ids.append(arrest_id)
-
-    return ids
+    return [arrest_id for arrest_id, _ in _parse_listing_with_pdfs(soup, url)]
 
 
 async def backfill_run(
@@ -297,15 +386,19 @@ async def backfill_run(
     current_page = start_page
 
     try:
-        async for arrest_id, page_index in source.paginate(
+        async for arrest_id, page_index, pdf_url in source.paginate(
             start_page=start_page,
             limit=limit,
             year_filter=years,
         ):
             current_page = page_index
             try:
-                # Tier 2: download PDF
-                pdf_path = await source.download_pdf(arrest_id, dest_dir=dest_dir)
+                # Tier 2: download PDF (pdf_url is the absolute href harvested
+                # from the listing — month-folder URLs vary, so we rely on
+                # the parsed value rather than constructing a path).
+                pdf_path = await source.download_pdf(
+                    arrest_id, pdf_url=pdf_url, dest_dir=dest_dir
+                )
 
                 # Tier 3: extract via Sonnet (cache-backed). Note: extract_text
                 # is an async coroutine — review-v5 B1 fix added the missing await.
