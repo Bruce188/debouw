@@ -151,6 +151,8 @@ gerapporteerd ongeacht N — diagnostisch nuttig vanaf de eerste run.
 
 ## Inzageloket Vlaanderen — Phase 4 posture
 
+- **Re-validated:** 2026-04-30 — selectors locked against synthetic fixtures only; live-DOM probe pending operator run via `scripts/probe_inzageloket.py`. Schema-drift lock test added: `tests/test_parser_inzageloket_schema_drift.py`.
+
 debouw scrapet `omgevingsloketinzage.omgeving.vlaanderen.be` via **Playwright
 met een echte (headed) Chromium** — niet headless. De site is beschermd door
 **Anubis** (proof-of-work anti-bot) en `robots.txt` staat enkel Googlebot/
