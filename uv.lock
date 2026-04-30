@@ -521,7 +521,7 @@ requires-dist = [
     { name = "orjson" },
     { name = "pdfplumber" },
     { name = "playwright", specifier = ">=1.45,<2" },
-    { name = "pyarrow", specifier = ">=18" },
+    { name = "pyarrow", specifier = ">=18,<22" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-settings" },
     { name = "pytest", marker = "extra == 'dev'" },
