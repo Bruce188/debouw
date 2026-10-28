@@ -42,7 +42,7 @@ from debouw.risk.features import extract
 from debouw.risk.narrate import Narrator, ProjectNarration, _static_narration
 from debouw.risk.precedents import LanceDBPrecedentStore, PrecedentHit
 from debouw.risk.rules import apply_all
-from debouw.risk.scoring import ScoredFactor, aggregate, score_hit, top_k
+from debouw.risk.scoring import ScoredFactor, aggregate, rank, score_hit, top_k
 from debouw.risk.taxonomy import TAXONOMY, get_category_def
 
 
@@ -147,9 +147,9 @@ class RealRiskEngine:
         4. top_k.
         5. LanceDB search per top-5 category (pure local-disk read).
         6. PASS 2: Rescore top-5 with precedent_modifier wired in.
-        7. Re-sort after modifier.
-        8. Narrate (with precedents_by_category).
-        9. Assemble RiskAssessment.
+        7. Merge rescored top-5 into the full scored set; re-sort.
+        8. Narrate the top 5 (with precedents_by_category).
+        9. Assemble RiskAssessment — top_risks carries ALL scored factors.
 
         Engine-purity contract (review-v5 B4): no Anthropic / OpenAI calls
         inside this method. Per-category query vectors must already be
@@ -230,10 +230,21 @@ class RealRiskEngine:
             )
             top5_rescored.append(sf2)
 
-        # 8. Re-sort after modifier
-        top5 = top_k(top5_rescored, k=5)
+        # 8. Merge the rescored top-5 back into the full scored set and re-sort.
+        #    Precedent rescoring (LanceDB lookup + precedent_modifier) stays
+        #    bounded to the top-5 pass-1 candidates: one local-disk search per
+        #    category keeps classify() cheap, and lower-ranked factors rarely
+        #    carry precedent signal strong enough to reorder the head of the
+        #    list. The persisted list itself is NOT truncated — top_risks
+        #    carries every scored factor, sorted (probability desc, category asc).
+        rescored_by_category = {sf.category: sf for sf in top5_rescored}
+        all_ranked = rank(
+            [rescored_by_category.get(sf.category, sf) for sf in scored_pass1]
+        )
+        top5 = all_ranked[:5]
 
-        # 9. Narrate (passes precedents_by_category for citation in Dutch rationale)
+        # 9. Narrate the top 5 only (bounded LLM prompt; lower-ranked factors
+        #    fall back to the static taxonomy rationale in _build_risk_factors).
         if self._session_factory is not None:
             async with self._session_factory() as session:
                 narration = await self._narrator.narrate(
@@ -252,10 +263,14 @@ class RealRiskEngine:
             )
 
         # 10. Assemble RiskFactor list (populate .precedents from LanceDB hits)
-        top_risks = _build_risk_factors(top5, narration, precedents_by_category)
+        top_risks = _build_risk_factors(all_ranked, narration, precedents_by_category)
 
-        # Aggregate over ALL pass-1 scored factors (full 14-category picture)
-        overall_score, expected_delay_days = aggregate(scored_pass1)
+        # Aggregate over the merged set (full 14-category picture, with the
+        # top-5 carrying their precedent-rescored probabilities). Using the
+        # same factor set that is persisted in top_risks and handed to the
+        # narrator keeps overall_score >= every displayed factor probability
+        # and keeps the narrator's tone anchor equal to the stored score.
+        overall_score, expected_delay_days = aggregate(all_ranked)
 
         # Inputs hash
         overlay_keys = sorted(type(project.overlays).model_fields.keys() if project.overlays else [])

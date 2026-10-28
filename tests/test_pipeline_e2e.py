@@ -283,6 +283,40 @@ async def test_pipeline_circuit_open_aborts(tmp_path: Path) -> None:
     assert result.circuit_open is True
 
 
+@pytest.mark.asyncio
+async def test_pipeline_vanished_dossiers_do_not_trip_breaker(tmp_path: Path) -> None:
+    """Withdrawn dossiers (platform 404 page served with HTTP 200) are benign
+    skips: even with max_failures=2 and 5 vanished cards, the circuit stays
+    closed — a tenant purging expired dossiers must not abort the sweep."""
+    settings = _settings(tmp_path)
+    _init_db(settings)
+    vanished_html = (
+        FIXTURES / "vlaanderen_consultatie" / "remmicom_404.html"
+    ).read_text(encoding="utf-8")
+
+    with (
+        respx.mock(assert_all_called=False) as mock,
+        _patch_settings(settings),
+        patch("debouw.pipeline.CircuitBreaker", lambda: __import__(
+            "debouw.ingest.circuit_breaker", fromlist=["CircuitBreaker"]
+        ).CircuitBreaker(max_failures=2)),
+    ):
+        mock.get(url__regex=r".*consultatieomgeving.*OpenbareOnderzoeken$").mock(
+            return_value=Response(200, text=INDEX_HTML)
+        )
+        # Every detail call returns the platform not-found page with HTTP 200.
+        mock.get(url__regex=r".*consultatieomgeving.*Details/.*").mock(
+            return_value=Response(200, text=vanished_html)
+        )
+
+        from debouw.pipeline import run
+
+        result = await run("gent", limit=5)
+
+    assert result.ingested == 0
+    assert result.circuit_open is False
+
+
 # ---------------------------------------------------------------------------
 # B3: Pipeline skips unchanged dossier (content_hash idempotency gate)
 # ---------------------------------------------------------------------------

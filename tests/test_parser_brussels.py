@@ -463,3 +463,172 @@ async def test_brussels_detail_maps_has_impact_study_to_mer_plicht(tmp_path: Pat
             project, _ = await src.detail_pass(ref)
 
     assert project.mer_status == "mer_plicht", f"Expected 'mer_plicht' got {project.mer_status!r}"
+
+
+# ---------------------------------------------------------------------------
+# NEW TESTS — errorsWeight (plural) key (12. error_weight plural key)
+# ---------------------------------------------------------------------------
+
+def _make_detail_html(
+    *,
+    ref: str = "01/PU/2026001",
+    address: str = "Rue du Test 1 1000 Bruxelles",
+    description: str = "",
+    extra_json_fields: str = "",
+) -> str:
+    """Build a minimal Brussels detail page HTML for unit tests."""
+    return (
+        f"<!DOCTYPE html><html lang='fr'><head><title>Test</title></head><body>"
+        f"<h1 class='card-title'>{address}</h1>"
+        f"<div id='description-case'>{description}</div>"
+        f"<script>\nlet tabledatahistory = [{{"
+        f'"caseStatus":"instruction",'
+        f'"caseType":"PU",'
+        f'"caseLanguage":"fr",'
+        f'"hasImpactStudy":false,'
+        f'"hasImpactReport":false,'
+        f'"floorArea":null,'
+        f'"cutTreesNumber":null,'
+        f'"inquiryStartDate":null,'
+        f'"inquiryEndDate":null,'
+        f'"geometry":null'
+        f"{extra_json_fields}"
+        f"}}];\n</script></body></html>"
+    )
+
+
+def test_errors_weight_plural_key_parsed() -> None:
+    """'errorsWeight' (plural) in latest JSON is parsed into error_weight."""
+    from debouw.ingest.sources.brussels import _parse_brussels_html
+
+    html = _make_detail_html(extra_json_fields=',"errorsWeight":7.75')
+    result = _parse_brussels_html(html, "01/PU/2026001")
+    assert result["error_weight"] == 7.75, (
+        f"Expected 7.75, got {result['error_weight']!r}"
+    )
+
+
+def test_error_weight_singular_key_regression() -> None:
+    """'errorWeight' (singular, older fixture shape) still parses correctly."""
+    from debouw.ingest.sources.brussels import _parse_brussels_html
+
+    html = _make_detail_html(extra_json_fields=',"errorWeight":3.5')
+    result = _parse_brussels_html(html, "01/PU/2026001")
+    assert result["error_weight"] == 3.5, (
+        f"Expected 3.5, got {result['error_weight']!r}"
+    )
+
+
+def test_errors_weight_plural_takes_precedence_over_singular() -> None:
+    """When both keys are present, 'errorsWeight' (plural) wins."""
+    from debouw.ingest.sources.brussels import _parse_brussels_html
+
+    # Both keys present: plural wins via dict.get fallback chain
+    html = _make_detail_html(extra_json_fields=',"errorsWeight":9.0,"errorWeight":1.0')
+    result = _parse_brussels_html(html, "01/PU/2026001")
+    assert result["error_weight"] == 9.0, (
+        f"Expected 9.0 (plural wins), got {result['error_weight']!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# NEW TESTS — nested floorArea shape (13. nested floorArea)
+# ---------------------------------------------------------------------------
+
+def test_floor_area_nested_shape() -> None:
+    """Nested floorArea {'housing': {'typology': ..., 'floorArea': {'authorized': 3200.0}}}
+    sums to 3200.0."""
+    floor_area = {
+        "housing": {
+            "typology": "housing",
+            "floorArea": {"authorized": 3200.0, "projected": 3300.0},
+        }
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 3200.0, f"Expected 3200.0, got {result!r}"
+
+
+def test_floor_area_flat_legacy_shape_regression() -> None:
+    """Flat legacy shape {'housing': {'authorized': 1200.0}} still works."""
+    floor_area = {"housing": {"authorized": 1200.0, "projected": 1200.0}}
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 1200.0, f"Expected 1200.0, got {result!r}"
+
+
+def test_floor_area_mixed_nested_and_flat() -> None:
+    """Mixed dict: one typology nested, one flat, non-dict values tolerated."""
+    floor_area = {
+        "housing": {
+            "typology": "housing",
+            "floorArea": {"authorized": 3200.0},
+        },
+        "office": {"authorized": 500.0},
+        "metadata_string": "ignored",   # non-dict value — must not crash
+        42: "also_ignored",             # non-dict value — must not crash
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 3700.0, f"Expected 3700.0, got {result!r}"
+
+
+def test_floor_area_nested_missing_authorized_treated_as_zero() -> None:
+    """Nested floorArea dict without 'authorized' contributes 0."""
+    floor_area = {
+        "housing": {
+            "typology": "housing",
+            "floorArea": {"projected": 3200.0},  # no 'authorized'
+        }
+    }
+    result = _sum_authorized_floor_area(floor_area)
+    assert result == 0.0, f"Expected 0.0, got {result!r}"
+
+
+# ---------------------------------------------------------------------------
+# NEW TESTS — _parse_description_for_units_floors_iioa wiring (14.)
+# ---------------------------------------------------------------------------
+
+def test_parse_description_fr_units_floors_iioa_r_plus_n() -> None:
+    """FR description with 'R+N niveaux' extracts floors via the niveaux variant."""
+    # '4 niveaux' is matched by the floors regex; units and iioa_class also present
+    desc = "construction de 8 logements, immeuble R+4 niveaux, classe II"
+    result = _parse_description_for_units_floors_iioa(desc, lang="fr")
+    assert result["units"] == 8
+    assert result["floors"] == 4
+    assert result["iioa_class"] == 2
+
+
+def test_parse_description_wiring_into_parse_brussels_html() -> None:
+    """_parse_brussels_html returns units/floors/iioa_class keys populated from description."""
+    from debouw.ingest.sources.brussels import _parse_brussels_html
+
+    desc = "construction de 8 logements répartis sur 4 étages, classe II"
+    html = _make_detail_html(description=desc)
+    result = _parse_brussels_html(html, "01/PU/2026001")
+
+    assert "units" in result, "Key 'units' must be present in parsed result"
+    assert "floors" in result, "Key 'floors' must be present in parsed result"
+    assert "iioa_class" in result, "Key 'iioa_class' must be present in parsed result"
+    assert result["units"] == 8
+    assert result["floors"] == 4
+    assert result["iioa_class"] == 2
+
+
+@pytest.mark.asyncio
+async def test_parse_description_units_floors_iioa_flow_into_project(
+    tmp_path: Path,
+) -> None:
+    """units/floors/iioa_class extracted from description flow into the PermitProject."""
+    settings = _settings(tmp_path)
+    ref = "01/PU/2026099"
+    desc = "construction de 12 logements répartis sur 5 étages, classe I"
+    html = _make_detail_html(ref=ref, description=desc)
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(f"{_BASE}/fr/_{ref}").mock(
+            return_value=Response(200, text=html)
+        )
+        async with BrusselsSource(settings) as src:
+            project, _ = await src.detail_pass(ref)
+
+    assert project.units == 12, f"Expected units=12, got {project.units!r}"
+    assert project.floors == 5, f"Expected floors=5, got {project.floors!r}"
+    assert project.iioa_class == 1, f"Expected iioa_class=1, got {project.iioa_class!r}"

@@ -25,6 +25,17 @@ class SchemaDriftError(Exception):
     """
 
 
+class DossierVanishedError(Exception):
+    """Raised when a detail page no longer exists at the source.
+
+    Remmicom tenants serve their "Pagina niet gevonden" page with HTTP 200
+    when a dossier is withdrawn between the index and detail pass, so this
+    cannot be caught via raise_for_status(). A vanished dossier is a benign
+    skip — neither a parser-contract breach nor a source-health failure, so
+    it must not feed the circuit breaker.
+    """
+
+
 class Source(ABC):
     """Abstract base for all debouw scrapers."""
 

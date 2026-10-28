@@ -1,7 +1,12 @@
 """
-Nominatim geocoder with 30-day file cache.
+Geocoders with 30-day file cache.
 
-Geocodes Belgian addresses using OpenStreetMap Nominatim.
+Two backends:
+  - geocode():            OpenStreetMap Nominatim (countrycodes=be).
+  - geocode_vlaanderen(): official free Vlaanderen geolocation API
+                          (geo.api.vlaanderen.be/geolocation/v4/Location).
+geocode_with_fallback() tries Vlaanderen first, then Nominatim.
+
 Empty addresses short-circuit immediately (no network call).
 Results are cached by sha256(normalised_address) with a 30-day mtime TTL.
 """
@@ -108,3 +113,63 @@ async def geocode(address: str, settings: Settings) -> GeoPoint | None:
 
     finally:
         await client.aclose()
+
+
+_VLAANDEREN_GEOLOCATION_PATH = "/geolocation/v4/Location"
+
+
+async def geocode_vlaanderen(address: str, settings: Settings) -> GeoPoint | None:
+    """Geocode a Flemish address via the official Vlaanderen geolocation API.
+
+    Free, no API key. The 'geopunt' http client attaches the identifying
+    User-Agent (settings.nominatim_user_agent) and the 1 req/s polite rate.
+    Returns None on empty input, no results, or coords outside Belgium.
+    """
+    if not address.strip():
+        return None
+
+    path = _cache_path(f"vlaanderen:{address}", settings)
+    cached = _load_cache(path)
+    if cached is not None:
+        if cached.get("hit") is False:
+            return None  # cached miss
+        return GeoPoint(lat=cached["lat"], lon=cached["lon"])
+
+    client = create_http_client(settings, source="geopunt")
+    try:
+        response = await client.get(
+            _VLAANDEREN_GEOLOCATION_PATH,
+            params={"q": address.strip(), "c": 1},
+        )
+        results = response.json().get("LocationResult") or []
+        if not results:
+            _save_cache(path, {"hit": False})
+            return None
+
+        location = results[0].get("Location") or {}
+        lat = location.get("Lat_WGS84")
+        lon = location.get("Lon_WGS84")
+        if lat is None or lon is None:
+            _save_cache(path, {"hit": False})
+            return None
+        lat, lon = float(lat), float(lon)
+
+        # Validate against Belgium bbox (mirrors geocode())
+        if not (_LAT_MIN <= lat <= _LAT_MAX and _LON_MIN <= lon <= _LON_MAX):
+            _save_cache(path, {"hit": False})
+            return None
+
+        point = GeoPoint(lat=lat, lon=lon)
+        _save_cache(path, {"lat": lat, "lon": lon})
+        return point
+
+    finally:
+        await client.aclose()
+
+
+async def geocode_with_fallback(address: str, settings: Settings) -> GeoPoint | None:
+    """Vlaanderen geolocation first; Nominatim fallback when it returns nothing."""
+    point = await geocode_vlaanderen(address, settings)
+    if point is None:
+        point = await geocode(address, settings)
+    return point

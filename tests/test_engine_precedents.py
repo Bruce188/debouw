@@ -58,11 +58,11 @@ def _narrator_mock() -> Narrator:
 # ---------------------------------------------------------------------------
 
 def test_engine_version_bumped_to_0_3_0():
-    """Engine version is now 0.6.0 (bumped in Phase 6 / feat/brussels-score-differentiation)."""
+    """Engine version is now 0.7.1 (overall_score aggregates rescored factors)."""
     s = _settings()
     engine = RealRiskEngine(s, narrator=_narrator_mock())
     assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
-    assert assessment.engine_version == "0.6.0"
+    assert assessment.engine_version == "0.7.1"
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +203,45 @@ def test_seeded_precedents_modify_top_risk_probability():
         rf for rf in a_seeded.top_risks if rf.category == RiskCategory.GRO_HEIGHT
     )
     assert seeded_top.probability >= base_top.probability
+
+
+def test_overall_score_consistent_with_rescored_top_risks():
+    """overall_score must aggregate the SAME factor set persisted in top_risks.
+
+    Regression: aggregate() used to run over the pass-1 (pre-precedent)
+    probabilities while top_risks carried the precedent-rescored values,
+    so the stored overall_score could sit BELOW its own top factor's
+    displayed probability (and below the narrator's tone anchor).
+    """
+    s = _settings()
+    engine = RealRiskEngine(s, narrator=_narrator_mock())
+    fake_hits = [
+        PrecedentHit(
+            arrest_id=f"RVVB.A.2425.{i:04d}",
+            similarity=1.0,
+            outcome="vernietigd",
+            decision_excerpt="Hit",
+            grounds_used=["gro_height"],
+            decision_date=date(2025, 1, 1),
+        )
+        for i in range(3)
+    ]
+    engine._precedent_store.search = (  # type: ignore[assignment]
+        lambda category, vec, **kw: fake_hits if category == RiskCategory.GRO_HEIGHT else []
+    )
+    for cat in RiskCategory:
+        engine._query_vectors_by_category[cat] = [0.1] * s.embedding_dim
+    engine._query_vectors_built = True
+
+    project = SYNTHETIC_PROJECTS[RiskCategory.GRO_HEIGHT][0]
+    assessment = asyncio.run(engine.classify(project))
+
+    max_factor_prob = max(rf.probability for rf in assessment.top_risks)
+    assert assessment.overall_score == pytest.approx(max_factor_prob, abs=1e-9), (
+        f"overall_score {assessment.overall_score} != max persisted factor "
+        f"probability {max_factor_prob} — aggregate ran over a different "
+        f"factor set than the one persisted in top_risks"
+    )
 
 
 # ---------------------------------------------------------------------------

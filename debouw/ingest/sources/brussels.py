@@ -58,7 +58,7 @@ _BE_ADDRESS_PATTERN = re.compile(
 
 # Regexes for description parsing: units, floors, iioa_class (FR + NL-Brussels)
 _DESC_FLOORS_FR_RE = re.compile(
-    r"(\d{1,2})\s*(?:étages?|niveaux|R\+(\d+))",
+    r"(\d{1,2})\s*(?:étages?|niveaux)|R\s*\+\s*(\d{1,2})\b",
     re.IGNORECASE | re.MULTILINE,
 )
 _DESC_FLOORS_NL_RE = re.compile(
@@ -181,8 +181,9 @@ def _parse_description_for_units_floors_iioa(desc: str, lang: str) -> dict[str, 
 
     m = floor_re.search(desc)
     if m:
+        raw_floors = next((g for g in m.groups() if g), None)
         try:
-            floors = int(m.group(1))
+            floors = int(raw_floors)  # type: ignore[arg-type]
         except (ValueError, TypeError):
             pass
 
@@ -214,9 +215,16 @@ def _sum_authorized_floor_area(floor_area: dict | None) -> float | None:
     for typology_data in floor_area.values():
         if not isinstance(typology_data, dict):
             continue
+        # Live openpermits pages nest the figures one level deeper:
+        #   {"housing": {"typology": "housing",
+        #                "floorArea": {"authorized": 3200.0, ...}}}
+        # The flat shape ({"housing": {"authorized": 3200.0}}) is kept for
+        # older page revisions and fixtures.
+        inner = typology_data.get("floorArea")
+        values = inner if isinstance(inner, dict) else typology_data
         found_any = True
         try:
-            val = float(typology_data.get("authorized", 0) or 0)
+            val = float(values.get("authorized", 0) or 0)
         except (TypeError, ValueError):
             val = 0.0
         total += max(0.0, val)
@@ -234,7 +242,8 @@ def _parse_brussels_html(html: str, ref: str) -> dict[str, Any]:
     Keys returned:
       address_raw, address_parsed, description, case_type, case_status,
       inquiry_start, inquiry_end, trees_to_fell, error_weight, floor_area_m2,
-      mer_status, case_language, geometry, history_data, latest
+      mer_status, case_language, units, floors, iioa_class, geometry,
+      history_data, latest
     """
     soup = BeautifulSoup(html, "html.parser")
 
@@ -302,10 +311,13 @@ def _parse_brussels_html(html: str, ref: str) -> dict[str, Any]:
             pass
 
     # --- error_weight ---
+    # Live openpermits pages send "errorsWeight" (plural); accept the
+    # singular "errorWeight" too for older page revisions and fixtures.
     error_weight: float | None = None
+    raw_error_weight = latest.get("errorsWeight", latest.get("errorWeight"))
     try:
-        error_weight = float(latest["errorWeight"])
-    except (KeyError, TypeError, ValueError):
+        error_weight = float(raw_error_weight)
+    except (TypeError, ValueError):
         pass
 
     # --- floor_area_m2 ---
@@ -328,6 +340,11 @@ def _parse_brussels_html(html: str, ref: str) -> dict[str, Any]:
     # Clamp to allowed values: "fr" or "nl"
     if case_language not in ("fr", "nl"):
         case_language = "fr"
+
+    # --- units / floors / iioa_class from the description text ---
+    desc_fields = _parse_description_for_units_floors_iioa(
+        description or "", case_language
+    )
 
     # --- geometry (Lambert-72) ---
     # Geometry may be a dict or a JSON-encoded string (as seen in openpermits.brussels)
@@ -354,6 +371,9 @@ def _parse_brussels_html(html: str, ref: str) -> dict[str, Any]:
         "floor_area_m2": floor_area_m2,
         "mer_status": mer_status,
         "case_language": case_language,
+        "units": desc_fields["units"],
+        "floors": desc_fields["floors"],
+        "iioa_class": desc_fields["iioa_class"],
         "geometry": geometry,
         "history_data": history_data,
         "latest": latest,
@@ -561,6 +581,9 @@ class BrusselsSource(Source):
             trees_to_fell=trees_to_fell,
             mer_status=mer_status,
             case_language=case_language,
+            units=parsed["units"],
+            floors=parsed["floors"],
+            iioa_class=parsed["iioa_class"],
             error_weight=error_weight,
             floor_area_m2=floor_area_m2,
             attachments=attachments,
