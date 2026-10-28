@@ -84,13 +84,20 @@ def test_no_assessment_shows_info() -> None:
     mock_st = MagicMock()
     mock_st.info.side_effect = lambda msg: info_calls.append(msg)
 
-    # columns returns two mock objects (context managers)
-    col1, col2 = MagicMock(), MagicMock()
-    col1.__enter__ = lambda s: s
-    col1.__exit__ = MagicMock(return_value=False)
-    col2.__enter__ = lambda s: s
-    col2.__exit__ = MagicMock(return_value=False)
-    mock_st.columns.return_value = (col1, col2)
+    # columns returns one context-manager MagicMock per column in the spec,
+    # regardless of whether a list or int is passed.  This makes the mock
+    # resilient to future column-count changes.
+    def _make_col() -> MagicMock:
+        col = MagicMock()
+        col.__enter__ = lambda s: s
+        col.__exit__ = MagicMock(return_value=False)
+        return col
+
+    def _columns_side_effect(spec, **kwargs):
+        n = len(spec) if isinstance(spec, (list, tuple)) else int(spec)
+        return tuple(_make_col() for _ in range(n))
+
+    mock_st.columns.side_effect = _columns_side_effect
 
     import debouw.ui.components as comp_module
 
