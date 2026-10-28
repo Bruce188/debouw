@@ -20,12 +20,12 @@ All scrapers identify as `debouw-research/0.x` and honor per-source rate limits.
 
 ## Stack
 
-Python 3.12+, Typer CLI, SQLAlchemy + aiosqlite, Alembic, LanceDB (vector store), pdfplumber, Streamlit + Folium, Playwright (Inzageloket).
+Python 3.12–3.13, Typer CLI, SQLAlchemy + aiosqlite, Alembic, LanceDB (vector store), pdfplumber, Streamlit + Folium, Playwright (Inzageloket).
 
 ## Setup
 
 ```bash
-uv sync
+uv sync --python 3.12                    # pinned pyarrow<22 has no 3.14 wheels
 cp .env.example .env                     # set NOMINATIM_USER_AGENT contact + API keys
 uv run playwright install chromium       # Inzageloket only
 uv run alembic upgrade head
