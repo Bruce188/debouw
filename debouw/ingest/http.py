@@ -15,8 +15,11 @@ from debouw.config import Settings
 
 
 def _should_retry(exc: BaseException) -> bool:
-    """Retry on network errors and 5xx HTTP status errors."""
-    if isinstance(exc, httpx.NetworkError):
+    """Retry on timeouts, network errors and 5xx HTTP status errors."""
+    # TimeoutException is a sibling of NetworkError in httpx's hierarchy,
+    # not a subclass — without this branch a slow WFS endpoint fails the
+    # whole overlay on the first ReadTimeout.
+    if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError)):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code >= 500
@@ -107,22 +110,33 @@ class ThrottledHttpClient:
 
 _SOURCE_THROTTLE_MAP = {
     "gent": "throttle_gent_seconds",
+    "vlaanderen_consultatie": "throttle_vlaanderen_consultatie_seconds",
+    "basisregisters": "throttle_basisregisters_seconds",
     "nominatim": "throttle_nominatim_seconds",
     "rvvb": "throttle_rvvb_seconds",
     "inzageloket": "throttle_inzageloket_seconds",
     "geopunt": "throttle_geopunt_seconds",
     "onroerend_erfgoed": "throttle_geopunt_seconds",
     "brussels": "throttle_brussels_seconds",
+    "waterinfo": "throttle_waterinfo_seconds",
+    "mercator": "throttle_mercator_seconds",
 }
 
 _SOURCE_BASE_URL_MAP = {
     "gent": "gent_consultatie_base",
+    # Multi-tenant sweep builds absolute per-tenant URLs from
+    # consultatie_site_template; the base_url below is never merged in but the
+    # gent tenant is a valid platform host, so misuse fails loudly per-tenant.
+    "vlaanderen_consultatie": "gent_consultatie_base",
+    "basisregisters": "basisregisters_base",
     "nominatim": "nominatim_base",
     "rvvb": "rvvb_base",
     "inzageloket": "inzageloket_base",
     "geopunt": "geopunt_base",
     "onroerend_erfgoed": "onroerend_erfgoed_base",
     "brussels": "openpermits_brussels_base",
+    "waterinfo": "inspirepub_waterinfo_base",
+    "mercator": "mercator_base",
 }
 
 
@@ -137,7 +151,19 @@ def create_http_client(settings: Settings, *, source: str) -> ThrottledHttpClien
     base_url: str = getattr(settings, base_url_attr, "")
 
     # Identified sources require a meaningful User-Agent per polite-scrape policy
-    identified_sources = {"gent", "nominatim", "geopunt", "onroerend_erfgoed", "rvvb", "inzageloket", "brussels"}
+    identified_sources = {
+        "gent",
+        "vlaanderen_consultatie",
+        "basisregisters",
+        "nominatim",
+        "geopunt",
+        "onroerend_erfgoed",
+        "rvvb",
+        "inzageloket",
+        "brussels",
+        "waterinfo",
+        "mercator",
+    }
     user_agent = settings.nominatim_user_agent if source in identified_sources else None
 
     return ThrottledHttpClient(

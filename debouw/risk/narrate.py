@@ -14,7 +14,10 @@ Flow per narrate():
 API discipline:
 - ONE Sonnet call per (project, engine_version) pair.
 - cache_control={"type":"ephemeral"} on system prompt + taxonomy block.
-- max_tokens=1024; tenacity: 3 attempts, exponential backoff.
+- max_tokens = configured narration_max_tokens with a floor of 4096; when the
+  response stops on "max_tokens" we retry once with a doubled budget, then
+  give up (truncated output is never parsed or cached).
+- tenacity: 3 attempts, exponential backoff (rate limits only).
 - NO lancedb import in this module.
 """
 
@@ -63,6 +66,33 @@ class ProjectNarration(BaseModel):
     per_risk: dict[str, RiskNarration]  # keys = RiskCategory.value
 
 
+class _RiskNarrationEntry(BaseModel):
+    """One per-risk entry in the OpenAI wire shape (category carried inline)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str
+    rationale_nl: str
+    citations: list[str]
+    certainty: Literal["hoog", "midden", "laag"]
+
+
+class _ProjectNarrationWire(BaseModel):
+    """OpenAI structured-output wire shape.
+
+    OpenAI strict mode rejects dynamic-key objects: every object level must
+    enumerate its 'properties' and list all of them in 'required'. A
+    dict[str, ...] field cannot satisfy that, so per_risk travels as a list
+    of entries keyed by 'category' and is folded back into
+    ProjectNarration.per_risk after parsing.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary_nl: str
+    per_risk: list[_RiskNarrationEntry]
+
+
 # ---------------------------------------------------------------------------
 # Prompt constants (built once at import)
 # ---------------------------------------------------------------------------
@@ -70,9 +100,27 @@ class ProjectNarration(BaseModel):
 INSTRUCTIONS = (
     "Je bent een juridisch-technisch analist voor Belgische omgevingsvergunningen. "
     "Schrijf beknopte risicorationales in Vlaams Nederlands (2-3 zinnen per risico). "
-    "Verwijs uitsluitend naar juridische grondslagen die vermeld staan in het 'legal_basis_nl'-veld "
-    "van het betreffende risico. Citeer geen andere wetsartikelen. "
+    "Verwijs uitsluitend naar de juridische grondslag die in de taxonomietabel onder "
+    "'Juridische grondslag' bij de betrokken risicocategorie vermeld staat. "
+    "Citeer geen andere wetsartikelen; ontbreekt de juridische grondslag voor een categorie, "
+    "citeer dan voor die categorie geen enkel wetsartikel. "
     "Gebruik geen anglicismen. Wees objectief en feitelijk. "
+    "Gebruik uitsluitend feiten die letterlijk in de aangeleverde input staan; "
+    "verzin geen adressen, afstanden, stralen, oppervlaktes of andere details die niet in de input voorkomen. "
+    "Ontbreekt een waarde of is die null, schrijf dan dat die onbekend is — "
+    "neem nooit letterlijk 'null' of 'none' over in de tekst. "
+    "Benoem risicocategorieën altijd met hun natuurlijke Nederlandse naam uit de taxonomie; "
+    "reproduceer nooit snake_case-identificatoren (zoals 'binding_advice_ignored') "
+    "of ruwe veld=waarde-fragmenten (zoals 'mer_status=none' of 'height_m=null') in de lopende tekst. "
+    "Gebruik het profiel van de typische bezwaarmaker uitsluitend binnen de eigen risicocategorie; "
+    "pas afstanden of stralen uit de taxonomie nooit toe op een andere categorie. "
+    "Verwerk waar relevant de concrete cijfers en data uit de input "
+    "(kansen, vertragingsdagen, aantallen, adres) in de lopende tekst. "
+    "Geciteerde precedenten zijn arresten van de Raad voor Vergunningsbetwistingen (RvVb); "
+    "benoem ze als zodanig en schrijf ze nooit toe aan de Raad van State of een andere instantie. "
+    "Kalibreer de toon op het veld 'overall_score' in de input: "
+    "bij een score lager dan 0.15 beschrijf je het profiel in het register 'beperkt risico'; "
+    "gebruik 'aanzienlijk' of 'hoog' uitsluitend bij een score van 0.30 of hoger. "
     "Geef een samenvattende zin van het totale risicoprofiel in 'summary_nl'. "
     "Wanneer in 'precedents' arrest_id's worden vermeld, citeer er ten hoogste twee letterlijk "
     "in de rationale_nl en plaats hen in 'citations'. "
@@ -83,9 +131,29 @@ INSTRUCTIONS_FR = (
     "Vous êtes un analyste juridico-technique spécialisé dans les permis d'urbanisme belges "
     "(région de Bruxelles-Capitale, régime CoBAT). "
     "Rédigez des rationales de risque concises en français (2-3 phrases par risque). "
-    "Référez-vous exclusivement aux fondements juridiques mentionnés dans le champ 'legal_basis_fr' "
-    "du risque concerné. Ne citez pas d'autres articles de loi. "
+    "Référez-vous exclusivement à la base légale indiquée sous 'Base légale' dans la table "
+    "de taxonomie pour la catégorie de risque concernée. "
+    "Ne citez pas d'autres articles de loi ; si aucune base légale n'est indiquée pour une "
+    "catégorie, ne citez aucun article pour cette catégorie. "
     "Soyez objectif et factuel, sans anglicismes. "
+    "N'utilisez que des faits figurant littéralement dans l'entrée fournie ; "
+    "n'inventez ni adresses, ni distances, ni rayons, ni surfaces, ni aucun autre détail absent de l'entrée. "
+    "Si une valeur est absente ou null, indiquez qu'elle est inconnue — "
+    "ne reproduisez jamais 'null' ou 'none' tel quel dans le texte. "
+    "Désignez toujours les catégories de risque par leur nom naturel en français selon la taxonomie ; "
+    "ne reproduisez jamais d'identifiants snake_case (comme 'binding_advice_ignored') "
+    "ni de fragments bruts champ=valeur (comme 'mer_status=none' ou 'height_m=null') dans la prose. "
+    "N'appliquez le profil de l'auteur typique de la réclamation qu'à sa propre catégorie de "
+    "risque ; ne transposez jamais une distance ou un rayon de la taxonomie vers une autre catégorie. "
+    "Intégrez, lorsque c'est pertinent, les valeurs concrètes de l'entrée "
+    "(probabilités, jours de retard, nombres, adresse) dans la prose. "
+    "Les précédents cités sont des arrêts du Raad voor Vergunningsbetwistingen (RvVb), "
+    "la juridiction flamande du contentieux des permis ; désignez-les comme tels. "
+    "Pour les dossiers bruxellois, il s'agit de jurisprudence flamande analogue — "
+    "ne les attribuez jamais au Conseil d'État. "
+    "Calibrez le ton sur le champ 'overall_score' de l'entrée : "
+    "pour un score inférieur à 0.15, qualifiez le profil dans le registre 'risque limité' ; "
+    "réservez 'significatif' ou 'élevé' aux scores de 0.30 ou plus. "
     "Fournissez une phrase de synthèse du profil de risque global dans 'summary_nl' "
     "(utilisez 'summary_nl' comme clé JSON même pour le français — convention du schéma). "
     "Lorsque des 'arrest_id' figurent dans 'precedents', citez-en au maximum deux littéralement "
@@ -105,13 +173,17 @@ TAXONOMY_AS_MARKDOWN_FR: str = _build_taxonomy_md(language="fr", region="brussel
 # Confidence threshold: factors below this get static template
 _LOW_CONFIDENCE_THRESHOLD = 0.3
 
+# Floor for the Anthropic max_tokens budget. Engine 0.7.0 sends 5 factors with
+# rationale + per_risk output; 1024 tokens truncates mid-JSON on real dossiers.
+_MIN_NARRATION_MAX_TOKENS = 4096
+
 
 # ---------------------------------------------------------------------------
 # Citation validation helper (Phase 3 — soft drop of invalid arrest_ids)
 # ---------------------------------------------------------------------------
 
 def _validate_citations(narration: "ProjectNarration") -> "ProjectNarration":
-    """
+    r"""
     Post-parse soft validation: drop citations that are neither a valid
     RvVb arrest_id pattern nor a known legal_basis_nl reference.
 
@@ -264,24 +336,36 @@ class Narrator:
         # If all factors are low-confidence, skip API entirely
         if not api_factors:
             log.debug("narrator_all_low_confidence", project=project.external_id)
-            result = _static_narration(factors, project=project)
-            if session is not None:
-                await self._write_cache(session, project.external_id, result)
-            return result
+            return _static_narration(factors, project=project)
+
+        # Overall score for tone calibration in the prompt payload. Mirrors
+        # scoring.aggregate(): max(probability). Computed over the FULL factor
+        # list (pre confidence-gate) — rank() sorts by probability desc, so the
+        # top-k slice the engine passes in always carries the global max.
+        overall_score = max((f.probability for f in factors), default=0.0)
 
         # 3–5. Try Anthropic → OpenAI → static
         narration: ProjectNarration | None = None
 
         if self._anthropic_client is not None:
             narration = await self._call_anthropic(
-                project, api_factors, precedents_by_category, language_fr=is_brussels
+                project,
+                api_factors,
+                precedents_by_category,
+                language_fr=is_brussels,
+                overall_score=overall_score,
             )
 
         if narration is None and self._openai_client is not None:
             narration = await self._call_openai(
-                project, api_factors, precedents_by_category, language_fr=is_brussels
+                project,
+                api_factors,
+                precedents_by_category,
+                language_fr=is_brussels,
+                overall_score=overall_score,
             )
 
+        from_llm = narration is not None
         if narration is None:
             narration = _static_narration(api_factors, project=project)
 
@@ -307,7 +391,7 @@ class Narrator:
             )
 
         # 7. Write cache on non-static success
-        if session is not None:
+        if from_llm and session is not None:
             await self._write_cache(session, project.external_id, narration)
 
         return narration
@@ -326,11 +410,17 @@ class Narrator:
         project: PermitProject,
         factors: list,
         precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
+        *,
+        overall_score: float | None = None,
     ) -> str:
         """Build the user message JSON for the LLM.
 
         Phase 3: includes a per-risk 'precedents' block with up to 2 arrest_ids
         per category so the LLM can cite them in rationale_nl.
+
+        overall_score (max factor probability, mirroring scoring.aggregate)
+        rides along in the payload so the prompt's tone-calibration instruction
+        has a deterministic anchor. Prompt input only — not a wire schema.
         """
         project_dict = {
             "external_id": project.external_id,
@@ -369,11 +459,12 @@ class Narrator:
                 ],
             })
 
-        return json.dumps(
-            {"project": project_dict, "risk_factors": factors_dict},
-            ensure_ascii=False,
-            indent=2,
-        )
+        payload: dict = {"project": project_dict}
+        if overall_score is not None:
+            payload["overall_score"] = round(overall_score, 4)
+        payload["risk_factors"] = factors_dict
+
+        return json.dumps(payload, ensure_ascii=False, indent=2)
 
     async def _call_anthropic(
         self,
@@ -382,6 +473,7 @@ class Narrator:
         precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
         *,
         language_fr: bool = False,
+        overall_score: float | None = None,
     ) -> ProjectNarration | None:
         """Call Anthropic with prompt caching; retry on RateLimitError.
 
@@ -393,7 +485,9 @@ class Narrator:
         from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
         s = self._settings
-        user_msg = self._build_user_message(project, factors, precedents_by_category)
+        user_msg = self._build_user_message(
+            project, factors, precedents_by_category, overall_score=overall_score
+        )
 
         instructions_text = INSTRUCTIONS_FR if language_fr else INSTRUCTIONS
         taxonomy_text = TAXONOMY_AS_MARKDOWN_FR if language_fr else TAXONOMY_AS_MARKDOWN
@@ -427,10 +521,10 @@ class Narrator:
             wait=wait_exponential(multiplier=1, min=2, max=30),
             reraise=True,
         )
-        async def _call() -> ProjectNarration:
-            response = await self._anthropic_client.messages.create(
+        async def _create(max_tokens: int):
+            return await self._anthropic_client.messages.create(
                 model=s.sonnet_model,
-                max_tokens=s.narration_max_tokens,
+                max_tokens=max_tokens,
                 system=system,
                 messages=[
                     {
@@ -439,6 +533,27 @@ class Narrator:
                     }
                 ],
             )
+
+        async def _call() -> ProjectNarration | None:
+            budget = max(s.narration_max_tokens, _MIN_NARRATION_MAX_TOKENS)
+            response = await _create(budget)
+            if response.stop_reason == "max_tokens":
+                log.warning(
+                    "narrator_anthropic_truncated",
+                    project=project.external_id,
+                    max_tokens=budget,
+                    action="retry_with_doubled_budget",
+                )
+                budget *= 2
+                response = await _create(budget)
+                if response.stop_reason == "max_tokens":
+                    log.warning(
+                        "narrator_anthropic_truncated",
+                        project=project.external_id,
+                        max_tokens=budget,
+                        action="give_up",
+                    )
+                    return None
             # Parse response text as JSON → ProjectNarration
             text = response.content[0].text if response.content else "{}"
             # Find JSON object in response
@@ -450,6 +565,8 @@ class Narrator:
 
         try:
             result = await _call()
+            if result is None:
+                return None
             result = _validate_citations(result)
             log.debug("narrator_anthropic_ok", project=project.external_id)
             return result
@@ -474,13 +591,22 @@ class Narrator:
         precedents_by_category: "dict[RiskCategory, list[PrecedentHit]] | None" = None,
         *,
         language_fr: bool = False,
+        overall_score: float | None = None,
     ) -> ProjectNarration | None:
         """Call OpenAI fallback; no retry on non-rate-limit errors."""
         s = self._settings
-        user_msg = self._build_user_message(project, factors, precedents_by_category)
+        user_msg = self._build_user_message(
+            project, factors, precedents_by_category, overall_score=overall_score
+        )
         instructions_text = INSTRUCTIONS_FR if language_fr else INSTRUCTIONS
         taxonomy_text = TAXONOMY_AS_MARKDOWN_FR if language_fr else TAXONOMY_AS_MARKDOWN
-        system_text = instructions_text + "\n\n" + taxonomy_text
+        system_text = (
+            instructions_text
+            + "\n\n"
+            + taxonomy_text
+            + "\n\nReturn one per_risk entry per category in the input risk_factors, "
+            "with 'category' set to that category value."
+        )
 
         try:
             response = await self._openai_client.beta.chat.completions.parse(
@@ -489,11 +615,22 @@ class Narrator:
                     {"role": "system", "content": system_text},
                     {"role": "user", "content": user_msg},
                 ],
-                response_format=ProjectNarration,
+                response_format=_ProjectNarrationWire,
             )
-            result = response.choices[0].message.parsed
-            if result is None:
+            wire = response.choices[0].message.parsed
+            if wire is None:
                 return None
+            result = ProjectNarration(
+                summary_nl=wire.summary_nl,
+                per_risk={
+                    entry.category: RiskNarration(
+                        rationale_nl=entry.rationale_nl,
+                        citations=entry.citations,
+                        certainty=entry.certainty,
+                    )
+                    for entry in wire.per_risk
+                },
+            )
             log.debug("narrator_openai_ok", project=project.external_id)
             return result
         except Exception as exc:

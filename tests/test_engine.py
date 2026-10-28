@@ -100,9 +100,9 @@ def test_top_risk_is_expected_for_category(cat):
     assessment = asyncio.run(engine.classify(project))
     # The top risk for this dedicated fixture should match the category
     assert len(assessment.top_risks) >= 1
-    top_cats = [rf.category for rf in assessment.top_risks]
+    top_cats = [rf.category for rf in assessment.top_risks[:5]]
     assert cat in top_cats, (
-        f"Expected {cat.value} in top_risks but got {[c.value for c in top_cats]}"
+        f"Expected {cat.value} in top-5 but got {[c.value for c in top_cats]}"
     )
 
 
@@ -117,7 +117,7 @@ def test_vergunningencarrousel_top_risk_with_repeat():
     engine._parcel_repeat_counts[project.external_id] = 3
 
     assessment = asyncio.run(engine.classify(project))
-    top_cats = [rf.category for rf in assessment.top_risks]
+    top_cats = [rf.category for rf in assessment.top_risks[:5]]
     assert RiskCategory.VERGUNNINGENCARROUSEL in top_cats
 
 
@@ -145,17 +145,41 @@ def test_determinism_two_runs_produce_identical_scores():
 
 
 # ---------------------------------------------------------------------------
-# Top risks capped at 5
+# All scored hits persisted in top_risks
 # ---------------------------------------------------------------------------
 
-def test_top_risks_capped_at_5():
+def test_top_risks_contains_all_scored_hits_sorted_desc():
+    """top_risks carries every scored rule hit (no 5-item truncation),
+    sorted by probability desc with the category.value tiebreak, and two
+    runs produce identical scores and order."""
     import asyncio
     from debouw.risk.eval.synthetic_fixtures import NEUTRAL_PROJECT
+    from debouw.risk.taxonomy import get_category_def
 
     s = _settings()
     engine = RealRiskEngine(s, narrator=_narrator_mock())
-    assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
-    assert len(assessment.top_risks) <= 5
+    a1 = asyncio.run(engine.classify(NEUTRAL_PROJECT))
+    a2 = asyncio.run(engine.classify(NEUTRAL_PROJECT))
+
+    applicable = {
+        cat for cat in RiskCategory
+        if NEUTRAL_PROJECT.region in get_category_def(cat).applicable_regions
+    }
+    assert len(a1.top_risks) == len(applicable) > 5
+    assert {rf.category for rf in a1.top_risks} == applicable
+
+    # Sorted desc; on equal probability the tiebreak is category.value asc.
+    for r1, r2 in zip(a1.top_risks, a1.top_risks[1:]):
+        assert r1.probability > r2.probability or (
+            r1.probability == r2.probability
+            and r1.category.value < r2.category.value
+        )
+
+    # Determinism: two runs → identical order and scores.
+    assert [rf.category for rf in a1.top_risks] == [rf.category for rf in a2.top_risks]
+    assert [rf.probability for rf in a1.top_risks] == [
+        rf.probability for rf in a2.top_risks
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +193,7 @@ def test_engine_version_is_bumped():
     s = _settings()
     engine = RealRiskEngine(s, narrator=_narrator_mock())
     assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
-    assert assessment.engine_version == "0.6.0"
+    assert assessment.engine_version == "0.7.1"
 
 
 # ---------------------------------------------------------------------------
@@ -222,8 +246,8 @@ def test_classify_handles_none_overlays():
     # NEUTRAL_PROJECT has overlays but with all-default values
     assessment = asyncio.run(engine.classify(NEUTRAL_PROJECT))
     assert assessment is not None
-    # NATURE_2000_N should not fire without in_natura_2000 overlay
-    top_cats = [rf.category for rf in assessment.top_risks]
+    # NATURE_2000_N should not rank top-5 without in_natura_2000 overlay
+    top_cats = [rf.category for rf in assessment.top_risks[:5]]
     assert RiskCategory.NATURE_2000_N not in top_cats
 
 
@@ -329,8 +353,8 @@ def test_classify_skips_rules_outside_region():
         # Ensure region is "vl" (default, but be explicit)
         assert vl_project.region == "vl", f"Synthetic fixture for {vl_cat} has wrong region"
         assessment = asyncio.run(engine_vl.classify(vl_project))
-        # The category must be present somewhere in top_risks (it was designed to fire)
-        all_returned_cats = {rf.category for rf in assessment.top_risks}
-        assert vl_cat in all_returned_cats, (
-            f"VL-only category {vl_cat.value} was unexpectedly absent from VL assessment"
+        # The category must rank in the top 5 (it was designed to fire)
+        top5_cats = {rf.category for rf in assessment.top_risks[:5]}
+        assert vl_cat in top5_cats, (
+            f"VL-only category {vl_cat.value} was unexpectedly absent from VL top-5"
         )

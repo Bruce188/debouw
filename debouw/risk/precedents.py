@@ -103,6 +103,8 @@ class LanceDBPrecedentStore:
     Thread-safety: single-writer; concurrent writes blocked by LanceDB file lock.
     """
 
+    _warned_no_key: bool = False
+
     def __init__(self, settings: "Settings") -> None:
         self._settings = settings
         self._db = None
@@ -130,8 +132,9 @@ class LanceDBPrecedentStore:
             api_key = self._settings.openai_api_key
             if api_key:
                 self._embedder = openai.AsyncOpenAI(api_key=api_key)
-            else:
+            elif not LanceDBPrecedentStore._warned_no_key:
                 log.warning("precedent_store_no_openai_key")
+                LanceDBPrecedentStore._warned_no_key = True
         return self._embedder
 
     # ------------------------------------------------------------------
@@ -397,7 +400,7 @@ class LanceDBPrecedentStore:
             return response.data[0].embedding
         except Exception as exc:
             log.warning("precedent_store_embed_failed", error=str(exc))
-            return [0.0] * self._settings.embedding_dim
+            return []  # empty vector → engine skips LanceDB search (graceful degrade)
 
     async def embed_query_for_category(self, category: RiskCategory) -> list[float]:
         """

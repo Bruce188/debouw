@@ -136,7 +136,11 @@ GRO_HEIGHT_DEF = RiskCategoryDef(
     project_modifier=project_modifier_height,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Conflit d'échelle et de hauteur de bâtiment",
-    legal_basis_fr="art. 188/1 CoBAT; Règlement Régional d'Urbanisme (RRU) titre I",
+    legal_basis_fr=(
+        "Règlement Régional d'Urbanisme (RRU) titre I — caractéristiques des "
+        "constructions et de leurs abords (gabarits); art. 126, § 11 CoBAT — "
+        "dérogations moyennant motivation expresse"
+    ),
     static_rationale_fr=(
         "Données insuffisantes pour évaluer l'impact sur l'échelle et la hauteur du bâtiment; "
         "vérifier manuellement le rapport entre la hauteur du bâtiment et le bâti environnant."
@@ -157,17 +161,34 @@ WATER_FLOOD_DEF = RiskCategoryDef(
     },
     evidence_keys=("flood_risk_fluvial", "flood_risk_pluvial", "in_signaalgebied"),
     typical_objector_template_nl="Departement Omgeving / VMM",
-    legal_basis_nl="art. 9/1 Watertoetsbesluit; art. 4.3.2 DABM",
+    legal_basis_nl=(
+        "art. 1.3.1.1 gecoördineerd decreet integraal waterbeleid van "
+        "15 juni 2018 — watertoets; Watertoetsbesluit van 20 juli 2006"
+    ),
     static_rationale_nl=(
         "Onvoldoende gegevens om het overstromingsrisico betrouwbaar te beoordelen; "
         "raadpleeg de watertoets via het Geopunt-loket."
     ),
     project_modifier=project_modifier_water_flood,
-    # WATER_FLOOD requires Vlaamse overlay data (VMM/Geopunt) — VL only
+    # WATER_FLOOD requires Vlaamse overlay data (VMM/Geopunt) — VL only.
+    # FR fields are inert while the category stays VL-gated; they hold the
+    # verified Brussels counterpart (no statutory watertoets exists there —
+    # flood objections run through RRU art. 16 + the 2006 water ordinance).
+    # "RRU titre I, art. 16" cites the 2006 RRU; re-map if the Good Living
+    # RRU enters into force.
     applicable_regions=frozenset({"vl"}),
     label_fr=None,
-    legal_basis_fr=None,
-    static_rationale_fr=None,
+    legal_basis_fr=(
+        "Règlement Régional d'Urbanisme (RRU) titre I, art. 16 — collecte des "
+        "eaux pluviales; Ordonnance du 20 octobre 2006 établissant un cadre "
+        "pour la politique de l'eau, art. 3, 5°-6° et art. 18, § 2"
+    ),
+    static_rationale_fr=(
+        "Données insuffisantes pour évaluer le risque d'inondation et la "
+        "gestion des eaux pluviales; vérifier l'aléa d'inondation via les "
+        "cartes de Bruxelles Environnement et les exigences de l'art. 16 du "
+        "RRU titre I."
+    ),
     typical_objector_template_fr=None,
 )
 
@@ -184,18 +205,21 @@ MER_SCREENING_DEF = RiskCategoryDef(
     },
     evidence_keys=("mer_status", "iioa_class", "units"),
     typical_objector_template_nl="Departement Omgeving / omwonenden met MER-expertise",
-    legal_basis_nl="art. 4.3.2 DABM; bijlage II MER-besluit",
+    legal_basis_nl="art. 4.3.2 DABM; bijlage II en III project-MER-besluit van 10 december 2004",
     static_rationale_nl=(
         "De MER-screening kan ontoereikend zijn; verifieer de drempelwaarden in "
-        "bijlage II van het MER-besluit en art. 4.3.2 DABM."
+        "bijlage II en III van het project-MER-besluit en art. 4.3.2 DABM."
     ),
     project_modifier=project_modifier_mer,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Étude d'incidences sur l'environnement (EIE) insuffisante",
-    legal_basis_fr="art. 173 CoBAT; Ordonnance du 5 juin 1997 relative aux permis d'environnement (ORDE)",
+    legal_basis_fr=(
+        "art. 175/2 et 175/16 CoBAT — évaluation des incidences (annexes A et B); "
+        "Ordonnance du 5 juin 1997 relative aux permis d'environnement"
+    ),
     static_rationale_fr=(
         "L'évaluation des incidences peut être insuffisante; "
-        "vérifier les seuils de l'annexe de l'ordonnance du 5 juin 1997."
+        "vérifier les seuils des annexes A et B du CoBAT."
     ),
     typical_objector_template_fr="Bruxelles Environnement / riverains disposant d'expertise EIE",
 )
@@ -219,11 +243,21 @@ BPA_RUP_CONFLICT_DEF = RiskCategoryDef(
         "raadpleeg de stedenbouwkundige voorschriften van de betrokken zone."
     ),
     project_modifier=project_modifier_default,
-    # BPA/RUP is VCRO-specific (Vlaamse Codex Ruimtelijke Ordening) — VL only
+    # BPA/RUP is VCRO-specific (Vlaamse Codex Ruimtelijke Ordening) — VL only.
+    # FR fields are inert while the category stays VL-gated; they hold the
+    # verified Brussels counterpart (PRAS/PPAS force obligatoire) for future
+    # enablement.
     applicable_regions=frozenset({"vl"}),
     label_fr=None,
-    legal_basis_fr=None,
-    static_rationale_fr=None,
+    legal_basis_fr=(
+        "art. 28 et art. 64 CoBAT — force obligatoire du PRAS et des PPAS; "
+        "art. 126, § 11 CoBAT — régime des dérogations"
+    ),
+    static_rationale_fr=(
+        "Données insuffisantes pour établir une contrariété au PRAS ou au "
+        "PPAS; vérifier les prescriptions d'affectation de la zone concernée "
+        "et le régime des dérogations de l'art. 126, § 11 CoBAT."
+    ),
     typical_objector_template_fr=None,
 )
 
@@ -247,7 +281,11 @@ MOTIVATION_DEFECT_DEF = RiskCategoryDef(
     project_modifier=project_modifier_default,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Défaut de motivation de la décision d'urbanisme",
-    legal_basis_fr="art. 188/1 CoBAT; jurisprudence CdE (Conseil d'État belge)",
+    legal_basis_fr=(
+        "loi du 29 juillet 1991 relative à la motivation formelle des actes "
+        "administratifs; art. 126, § 11 CoBAT — dérogations moyennant motivation "
+        "expresse; jurisprudence CdE (Conseil d'État belge)"
+    ),
     static_rationale_fr=(
         "Un défaut de motivation est un moyen universel devant le Conseil d'État; "
         "vérifier si la décision de permis motive suffisamment le bon aménagement des lieux."
@@ -266,7 +304,7 @@ TREES_KAPVERG_DEF = RiskCategoryDef(
     },
     evidence_keys=("trees_to_fell",),
     typical_objector_template_nl="buurtcomités / Groene Kring / Natuurpunt",
-    legal_basis_nl="art. 4.4.23 VCRO; gemeentelijke bomenverordening",
+    legal_basis_nl="art. 4.2.1, 3° VCRO — vellen van hoogstammige bomen; gemeentelijke bomenverordening",
     static_rationale_nl=(
         "Onvoldoende gegevens over het aantal en de waarde van te kappen bomen; "
         "verifieer of een kapvergunning vereist is via de gemeentelijke bomenverordening."
@@ -274,7 +312,11 @@ TREES_KAPVERG_DEF = RiskCategoryDef(
     project_modifier=project_modifier_trees,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Abattage d'arbres remarquables",
-    legal_basis_fr="art. 70 CoBAT; Ordonnance du 27 avril 1995 relative aux arbres remarquables; règlement communal",
+    legal_basis_fr=(
+        "art. 98, § 1er, 8° CoBAT — abattage d'arbres à haute tige soumis à "
+        "permis; art. 207 CoBAT — inventaire (arbres remarquables); règlement "
+        "communal"
+    ),
     static_rationale_fr=(
         "Données insuffisantes sur le nombre et la valeur des arbres à abattre; "
         "vérifier si un permis d'abattage est requis via le règlement communal applicable."
@@ -294,7 +336,7 @@ MOBILITY_PARKING_DEF = RiskCategoryDef(
     },
     evidence_keys=("parking_spaces", "units", "distance_to_school_m"),
     typical_objector_template_nl="buurtbewoners / mobiliteitsafdeling gemeente",
-    legal_basis_nl="gemeentelijk parkeerreglement; art. 4.3.1 VCRO mobiliteitstoets",
+    legal_basis_nl="gemeentelijk parkeerreglement; art. 4.3.1, §2 VCRO — mobiliteitsimpact",
     static_rationale_nl=(
         "Onvoldoende gegevens om de parkeerratio te berekenen; verifieer de "
         "parkeernormen in het gemeentelijk parkeerreglement."
@@ -302,7 +344,11 @@ MOBILITY_PARKING_DEF = RiskCategoryDef(
     project_modifier=project_modifier_parking,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Déficit de normes de stationnement",
-    legal_basis_fr="art. 188/1 CoBAT; Règlement Régional d'Urbanisme (RRU) titre VIII — stationnement",
+    legal_basis_fr=(
+        "Règlement Régional d'Urbanisme (RRU) titre VIII — normes de "
+        "stationnement en dehors de la voie publique; règlement communal de "
+        "stationnement"
+    ),
     static_rationale_fr=(
         "Données insuffisantes pour calculer le ratio de stationnement; "
         "vérifier les normes dans le RRU titre VIII et le règlement communal de stationnement."
@@ -331,7 +377,11 @@ NATURE_2000_N_DEF = RiskCategoryDef(
     project_modifier=project_modifier_nature,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Évaluation appropriée / zones Natura 2000",
-    legal_basis_fr="art. 173 CoBAT; Directive Habitats art. 6; Ordonnance du 1er mars 2012 relative à la conservation de la nature",
+    legal_basis_fr=(
+        "art. 57 de l'Ordonnance du 1er mars 2012 relative à la conservation "
+        "de la nature — évaluation appropriée (Natura 2000); Directive "
+        "Habitats 92/43/CEE, art. 6"
+    ),
     static_rationale_fr=(
         "Données insuffisantes sur la proximité des zones Natura 2000; "
         "consulter Bruxelles Environnement pour une évaluation appropriée en cas de doute."
@@ -351,7 +401,10 @@ HERITAGE_INV_DEF = RiskCategoryDef(
     },
     evidence_keys=("in_protected_heritage", "heritage_match_distance_m"),
     typical_objector_template_nl="Agentschap Onroerend Erfgoed / erfgoedverenigingen",
-    legal_basis_nl="art. 5.4.1 Onroerenderfgoeddecreet; vastgestelde inventaris",
+    legal_basis_nl=(
+        "art. 4.1.9 Onroerenderfgoeddecreet — zorg- en motiveringsplicht bij "
+        "vastgesteld erfgoed; vastgestelde inventaris bouwkundig erfgoed"
+    ),
     static_rationale_nl=(
         "Onvoldoende gegevens over erfgoedwaarde of nabijheid tot beschermd erfgoed; "
         "verifieer de vastgestelde inventaris via geo.onroerenderfgoed.be."
@@ -359,7 +412,10 @@ HERITAGE_INV_DEF = RiskCategoryDef(
     project_modifier=project_modifier_default,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Inventaire du patrimoine architectural",
-    legal_basis_fr="art. 206 CoBAT; Ordonnance du 4 mars 2021 relative au patrimoine immobilier",
+    legal_basis_fr=(
+        "art. 207 CoBAT — inventaire du patrimoine immobilier; CoBAT titre V "
+        "(art. 206 et s.) — protection du patrimoine"
+    ),
     static_rationale_fr=(
         "Données insuffisantes sur la valeur patrimoniale ou la proximité d'un bien protégé; "
         "vérifier l'inventaire du patrimoine via urban.brussels."
@@ -407,7 +463,7 @@ PRIVACY_BEZONNING_DEF = RiskCategoryDef(
     },
     evidence_keys=("floors", "distance_to_residential_m"),
     typical_objector_template_nl="directe buren",
-    legal_basis_nl="art. 4.3.1 §2 VCRO; woonkwaliteitsnormen",
+    legal_basis_nl="art. 4.3.1, §2 VCRO — gebruiksgenot en gezondheid (goede ruimtelijke ordening)",
     static_rationale_nl=(
         "Onvoldoende gegevens over inkijk en bezonningsimpact; verifieer het "
         "aantal bouwlagen en de afstand tot aanpalende woningen."
@@ -415,7 +471,10 @@ PRIVACY_BEZONNING_DEF = RiskCategoryDef(
     project_modifier=project_modifier_default,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Atteinte à la vie privée / ensoleillement",
-    legal_basis_fr="art. 188/1 CoBAT; RRU titre I — gabarits",
+    legal_basis_fr=(
+        "Règlement Régional d'Urbanisme (RRU) titre I — caractéristiques des "
+        "constructions et de leurs abords (gabarits, implantation)"
+    ),
     static_rationale_fr=(
         "Données insuffisantes sur l'impact sur la vie privée et l'ensoleillement; "
         "vérifier le nombre de niveaux et la distance aux habitations voisines."
@@ -434,7 +493,11 @@ BINDING_ADVICE_IGNORED_DEF = RiskCategoryDef(
     },
     evidence_keys=("mentions_ongunstig_advies",),
     typical_objector_template_nl="adviserende instantie (ANB, VMM, OE)",
-    legal_basis_nl="art. 4.3.3 VCRO; bindend advies conform omgevingsvergunningsdecreet",
+    legal_basis_nl=(
+        "art. 4.3.3 VCRO — strijdigheid met direct werkende normen blijkend "
+        "uit verplicht advies; art. 24 e.v. Omgevingsvergunningsdecreet — "
+        "adviesverlening"
+    ),
     static_rationale_nl=(
         "Onvoldoende tekstinformatie om na te gaan of een bindend ongunstig advies "
         "werd genegeerd; raadpleeg de adviezen in het dossier."
@@ -442,7 +505,11 @@ BINDING_ADVICE_IGNORED_DEF = RiskCategoryDef(
     project_modifier=project_modifier_default,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Avis contraignant défavorable non respecté",
-    legal_basis_fr="art. 188/5 CoBAT; avis contraignant conformément au droit bruxellois de l'urbanisme",
+    legal_basis_fr=(
+        "art. 177, § 2 CoBAT — avis conforme de la Commission royale des "
+        "monuments et des sites; art. 126 CoBAT — avis conforme du "
+        "fonctionnaire délégué"
+    ),
     static_rationale_fr=(
         "Informations textuelles insuffisantes pour vérifier si un avis contraignant "
         "défavorable a été ignoré; consulter les avis dans le dossier."
@@ -462,7 +529,11 @@ FUNCTION_MIX_ZONING_DEF = RiskCategoryDef(
     },
     evidence_keys=("rup_zone", "project_type"),
     typical_objector_template_nl="buurtbewoners / gemeentelijke stedenbouw",
-    legal_basis_nl="art. 4.4.1 VCRO zonevreemd gebruik; bestemmingsplan",
+    legal_basis_nl=(
+        "art. 4.3.1, §1 VCRO — strijdigheid met bestemmingsvoorschriften; "
+        "art. 4.4.10 e.v. en art. 4.4.23 VCRO — zonevreemde constructies en "
+        "functiewijzigingen"
+    ),
     static_rationale_nl=(
         "Onvoldoende gegevens om zonevreemdheid te beoordelen; vergelijk de "
         "bestemming in het BPA/RUP met het opgegeven projecttype."
@@ -470,7 +541,10 @@ FUNCTION_MIX_ZONING_DEF = RiskCategoryDef(
     project_modifier=project_modifier_default,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Affectation incompatible avec le zonage",
-    legal_basis_fr="art. 188/1 CoBAT; Plan Régional d'Affectation du Sol (PRAS)",
+    legal_basis_fr=(
+        "art. 28 CoBAT — force obligatoire du PRAS; Plan Régional "
+        "d'Affectation du Sol (PRAS)"
+    ),
     static_rationale_fr=(
         "Données insuffisantes pour évaluer la compatibilité de la fonction avec le zonage; "
         "comparer la destination dans le PRAS avec le type de projet déclaré."
@@ -497,7 +571,10 @@ VERGUNNINGENCARROUSEL_DEF = RiskCategoryDef(
     project_modifier=project_modifier_carrousel,
     applicable_regions=frozenset({"vl", "brussels"}),
     label_fr="Fractionnement de demandes de permis",
-    legal_basis_fr="art. 188/1 CoBAT; jurisprudence CdE sur le fractionnement de permis",
+    legal_basis_fr=(
+        "art. 175/2, § 1er CoBAT — critères de sélection (cumul avec d'autres "
+        "installations); jurisprudence CdE sur le fractionnement de projet"
+    ),
     static_rationale_fr=(
         "Données insuffisantes sur les demandes répétées à la même parcelle; "
         "vérifier via la référence cadastrale si des dossiers antérieurs existent."

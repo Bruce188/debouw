@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="172" height="40" viewBox="0 0 172 40" role="img" aria-label="debouw">
+  <!-- Mark: rounded tile with skyline + tower crane -->
+  <rect x="0" y="0" width="40" height="40" rx="9" fill="#155e75"/>
+  <rect x="7" y="19" width="7" height="14" rx="1.2" fill="#ffffff" opacity="0.92"/>
+  <rect x="16.5" y="13" width="7" height="20" rx="1.2" fill="#f59e0b"/>
+  <rect x="26" y="23" width="6.5" height="10" rx="1.2" fill="#ffffff" opacity="0.6"/>
+  <path d="M20 13 V7 M13 7 H33 M33 7 V11" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <circle cx="33" cy="12.5" r="1.6" fill="#f59e0b"/>
+  <!-- Wordmark -->
+  <text x="50" y="27.5"
+        font-family="ui-sans-serif, system-ui, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="22" font-weight="700" letter-spacing="-0.4"
+        fill="#10212e">de<tspan fill="#155e75">bouw</tspan></text>
+</svg>

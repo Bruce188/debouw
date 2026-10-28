@@ -80,7 +80,13 @@ class PermitProject(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     external_id: str  # natural key, e.g. "gent:OMV_2026025532"
-    source: Literal["gent_consultatie", "vlaanderen_inzage", "brussels_openpermits"]
+    source: Literal[
+        "gent_consultatie",
+        "vlaanderen_consultatie",
+        "vlaanderen_inzage",
+        "brussels_openpermits",
+        "vlaanderen_mercator",
+    ]
     region: Literal["vl", "wl", "brussels"] = "vl"
     omv_reference: str
     detail_url: HttpUrl
@@ -174,7 +180,7 @@ class RiskAssessment(BaseModel):
     expected_delay_days: float  # Σ probability_c · severity_raw_days_c
     confidence: float
     summary: str  # 1-paragraph LLM
-    top_risks: list[RiskFactor]  # top-K=5, sorted by score desc
+    top_risks: list[RiskFactor]  # all triggered factors, sorted by score desc (0.7.0+)
     engine_version: str
     calibration_regime: Literal["pre_2026_reform", "post_2026_reform"]
     generated_at: datetime

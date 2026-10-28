@@ -1,0 +1,17 @@
+# debouw dashboard theme — keep in sync with debouw/ui/theme.py
+[theme]
+base = "light"
+primaryColor = "#155e75"
+backgroundColor = "#f6f8fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#10212e"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+# Hide the Deploy button + developer toolbar items for demo sessions
+# (client.toolbarMode: "auto" | "developer" | "viewer" | "minimal";
+# verified against streamlit 1.56.0).
+[client]
+toolbarMode = "minimal"

@@ -63,6 +63,44 @@ def test_legal_basis_nl_nonempty():
         assert defn.legal_basis_nl, f"{cat.value}: legal_basis_nl is empty"
 
 
+def test_no_refuted_legal_citations():
+    """Guard against re-introducing citations refuted by the 2026-06 primary-source audit.
+
+    Each entry was proven wrong verbatim against the coordinated CoBAT /
+    codex.vlaanderen.be / Justel: 188/1 and 188/5 are appeal-procedure
+    provisions; art. 173 CoBAT is a procedural default-of-decision rule;
+    art. 70 CoBAT is expropriation; art. 9/1 Watertoetsbesluit and the two
+    named ordinances do not exist; the remaining VCRO/OED articles were
+    transposed between categories.
+    """
+    refuted = (
+        "188/1",
+        "188/5",
+        "art. 173 CoBAT",
+        "art. 70 CoBAT",
+        "art. 206 CoBAT;",  # standalone-basis form; "art. 206 et s." context cite is fine
+        "9/1 Watertoetsbesluit",
+        "arbres remarquables»",
+        "Ordonnance du 27 avril 1995 relative aux arbres",
+        "Ordonnance du 4 mars 2021",
+        "art. 4.4.23 VCRO;",  # as leading tree-felling basis; valid inside FUNCTION_MIX string
+        "art. 5.4.1 Onroerenderfgoeddecreet",
+        "art. 4.4.1 VCRO",
+        "woonkwaliteitsnormen",
+        "mobiliteitstoets",
+    )
+    for cat, defn in TAXONOMY.items():
+        for field in ("legal_basis_nl", "legal_basis_fr",
+                      "static_rationale_nl", "static_rationale_fr"):
+            value = getattr(defn, field)
+            if value is None:
+                continue
+            for bad in refuted:
+                assert bad not in value, (
+                    f"{cat.value}.{field} contains refuted citation {bad!r}"
+                )
+
+
 def test_typical_objector_template_nonempty():
     for cat, defn in TAXONOMY.items():
         assert defn.typical_objector_template_nl, f"{cat.value}: typical_objector_template_nl empty"

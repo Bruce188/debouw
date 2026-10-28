@@ -4,7 +4,7 @@ Deterministic scoring math for the debouw risk engine.
 All functions are pure (no network, no DB). Determinism is guaranteed by:
 - sorted-key iteration in _trigger_prob
 - float clamping to [0, 1]
-- tiebreak on category.value (alphabetic) in top_k
+- tiebreak on category.value (alphabetic) in rank/top_k
 """
 
 from __future__ import annotations
@@ -224,17 +224,22 @@ def aggregate(factors: list[ScoredFactor]) -> tuple[float, float]:
     return overall, delay
 
 
+def rank(factors: list[ScoredFactor]) -> list[ScoredFactor]:
+    """
+    Return ALL factors sorted by (probability desc, category.value asc).
+
+    Tie-breaking on category.value ensures determinism.
+    """
+    return sorted(factors, key=lambda f: (-f.probability, f.category.value))
+
+
 def top_k(factors: list[ScoredFactor], k: int = 5) -> list[ScoredFactor]:
     """
     Return top-k factors sorted by (probability desc, category.value asc).
 
     Tie-breaking on category.value ensures determinism.
     """
-    sorted_factors = sorted(
-        factors,
-        key=lambda f: (-f.probability, f.category.value),
-    )
-    return sorted_factors[:k]
+    return rank(factors)[:k]
 
 
 # ---------------------------------------------------------------------------

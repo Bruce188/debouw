@@ -254,6 +254,39 @@ def test_embed_text_returns_empty_without_client(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# embed_text falls back to [] when the embedding call fails
+# ---------------------------------------------------------------------------
+
+def test_embed_text_returns_empty_on_embedding_failure(tmp_path):
+    """
+    Embedding API failure → embed_text returns [] like the no-client path.
+
+    A zero vector here would poison search: NaN cosine distance clamps to
+    similarity 1.0, surfacing irrelevant arrests as exact matches. The empty
+    vector instead trips the search() guard → no hits (graceful degrade).
+    """
+    s = _settings(tmp_path)
+    store = LanceDBPrecedentStore(s)
+    store.open_or_create_table()
+    store.upsert_arrest(
+        _make_extraction("RVVB.A.2425.0200", grounds=[RiskCategory.WATER_FLOOD]),
+        _unit_vector(1),
+    )
+
+    class _FailingEmbeddings:
+        async def create(self, **kwargs):
+            raise RuntimeError("openai unavailable")
+
+    class _FailingClient:
+        embeddings = _FailingEmbeddings()
+
+    store._embedder = _FailingClient()
+    vec = asyncio.run(store.embed_text("any text"))
+    assert vec == []
+    assert store.search(RiskCategory.WATER_FLOOD, vec) == []
+
+
+# ---------------------------------------------------------------------------
 # embed_query_for_category caches per category
 # ---------------------------------------------------------------------------
 

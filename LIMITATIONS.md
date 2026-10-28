@@ -13,9 +13,9 @@ op basis van publiek toegankelijke bronnen en een regelgebaseerde engine.
   de wettelijke MER-procedure niet.
 - Geen beslissingsgarantie. Een lage risicoscore is geen garantie dat een vergunning
   wordt verleend; een hoge score is geen zekerheid dat ze wordt geweigerd.
-- Geen volledigheid. De bronnen die worden gescraped zijn een selectie; brussel,
-  Inzageloket (inzageloket.omgeving.vlaanderen.be) en RvVb-precedenten worden
-  pas opgenomen in latere fases (Fase 3-5).
+- Geen volledigheid. De bronnen die worden gescraped zijn een selectie; Wallonische
+  dossiers en Brusselse ruimtelijke overlays (UrbIS) zijn nog niet opgenomen
+  (Fase 6+).
 
 ## Bronnen + ToS / polite-scrape posture
 
@@ -27,7 +27,7 @@ op basis van publiek toegankelijke bronnen en een regelgebaseerde engine.
 | Onroerend Erfgoed WFS | Fase 1 actief | Publiek overheidsplatform; geïdentificeerde UA; ≤1 req/s |
 | Inzageloket Vlaanderen | Fase 4 actief | robots.txt restrictief; Playwright headed browser; 1 req/5 s; SSRF-allowlist op bijlages |
 | RvVb rechtspraak | Fase 3 actief | research-scrape; 1 req/10 s (robots.txt Crawl-Delay) |
-| Brussels OpenPermits | Fase 5 gepland | Open API; nader te evalueren |
+| Brussels OpenPermits | Fase 5 actief | robots.txt: Allow /fr/* en /nl/*; geïdentificeerde UA; 1 req/2 s |
 
 Elke scraper gebruikt `debouw-research/0.x (contact: brucieboyy99@gmail.com)` als
 User-Agent en respecteert de bovenstaande rate-limits via een asyncio throttler.
@@ -74,7 +74,7 @@ Bij vragen of verzoeken tot verwijdering van gegevens:
 
 ## Engine version policy
 
-De risicoengine is versioned via het veld `engine_version` (huidig: `0.3.0-rules-precedents-v1`).
+De risicoengine is versioned via het veld `engine_version` (huidige waarde: zie `debouw status`).
 Elke versiestap maakt de eerder gecachte LLM-rationale ongeldig: de combinatiesleutel
 `(project_external_id, engine_version)` in de `risk_narration_cache`-tabel wordt niet
 overschreven, maar er wordt een nieuwe rij aangemaakt. Verouderde rijen worden niet
@@ -151,13 +151,23 @@ gerapporteerd ongeacht N — diagnostisch nuttig vanaf de eerste run.
 
 ## Inzageloket Vlaanderen — Phase 4 posture
 
-- **Re-validated:** 2026-04-30 — selectors locked against synthetic fixtures only; live-DOM probe pending operator run via `scripts/probe_inzageloket.py`. Schema-drift lock test added: `tests/test_parser_inzageloket_schema_drift.py`.
+- **Re-validated:** 2026-06-12 — `robots.txt` op
+  `omgevingsloketinzage.omgeving.vlaanderen.be` is verstrengd naar een
+  **algeheel verbod** (`User-agent: * / Disallow: /`, plus een expliciete
+  deny-lijst van AI/scraper-agents). De bron is daarom **geparkeerd**: geen
+  geautomatiseerde ingest zolang dit beleid geldt. Vlaanderen-dekking loopt
+  via de Remmicom-gemeenteportalen (robots open) en de MercatorNet
+  WFS-raadpleegdienst (modellicentie gratis hergebruik) — zie
+  "Vlaanderen-brede dekking" hieronder.
+- 2026-04-30 — selectors locked against synthetic fixtures only; live-DOM probe pending operator run via `scripts/probe_inzageloket.py`. Schema-drift lock test added: `tests/test_parser_inzageloket_schema_drift.py`.
 
-debouw scrapet `omgevingsloketinzage.omgeving.vlaanderen.be` via **Playwright
+De code (`InzageloketSource`) blijft aanwezig maar wordt niet uitgevoerd.
+Indien het robots-beleid ooit versoepelt: debouw scrapet via **Playwright
 met een echte (headed) Chromium** — niet headless. De site is beschermd door
-**Anubis** (proof-of-work anti-bot) en `robots.txt` staat enkel Googlebot/
-Bingbot expliciet toe; een echte browser is verplicht. Headless-impersonatie
-wordt geweigerd.
+**Anubis** (proof-of-work anti-bot); een echte browser is verplicht.
+Headless-impersonatie wordt geweigerd. De operator-probe
+(`scripts/probe_inzageloket.py`) bevat een robots-halt-gate die bij het
+huidige beleid weigert verder te gaan.
 
 | Beleid | Waarde |
 |---|---|
@@ -185,6 +195,29 @@ dossiers (gewijzigde `content_hash`) opnieuw geclassificeerd. Bestaande
 dossiers worden overgeslagen — een volledige run kost dus alleen op de
 eerste keer ~30-90 min.
 
+## Vlaanderen-brede dekking
+
+Vlaanderen-dekking loopt langs twee sporen (Inzageloket is geparkeerd, zie
+hierboven):
+
+1. **Remmicom-gemeenteportalen** (`<gemeente>.consultatieomgeving.net`) —
+   110 van de 285 Vlaamse gemeenten draaien hetzelfde "Consultatie Module
+   Burger"-platform als Gent (geverifieerd 2026-06-12; o.a. Antwerpen, Gent,
+   Hasselt, Genk, Kortrijk). `robots.txt` ontbreekt op alle tenants (geen
+   restricties); zelfde polite-rate en UA als Gent. Levert exacte
+   openbaar-onderzoek-vensters en bijlagen. Detail-labels variëren licht per
+   tenant — de parser gebruikt tolerante label-matching. Gemeenten op andere
+   leveranciers (CEVI/Cipal: o.a. Leuven, Mechelen, Brugge, Aalst, Oostende)
+   vallen buiten dit spoor.
+2. **MercatorNet WFS** (`mercator.vlaanderen.be`, laag `lu:lu_omv_gd_v2`
+   e.a.) — officiële raadpleegdienst onder *modellicentie gratis hergebruik
+   v1.0*: alle lopende omgevingsvergunningsdossiers statewide (~22k "In
+   behandeling") met Lambert-72-geometrie, bevoegde overheid en projecttype.
+   **Beperking:** de toestand-vocabulaire bevat géén "openbaar onderzoek"
+   en geen onderzoeksdata — het WFS-spoor levert dossier + geometrie +
+   status; de exacte OO-vensters komen alleen uit spoor 1 (of handmatig via
+   het publieke loket).
+
 ## Brussel — Fase 5 (COBAT)
 
 debouw scrapet `openpermits.brussels` via **bs4 + httpx** (Track B —
@@ -203,8 +236,7 @@ nginx met een Redis-cache en heeft geen Anubis-bescherming.
 narrator `INSTRUCTIONS_FR` en de Franstalige taxonomie-markdown
 (`_build_taxonomy_markdown(language="fr", region="brussels")`). De statische
 terugval gebruikt eveneens `static_rationale_fr` en `legal_basis_fr`.
-`engine_version` is ongewijzigd (`0.3.0-rules-precedents-v1` — geen fase-3
-escalatie heeft plaatsgevonden).
+De huidige `engine_version` is opvraagbaar via `debouw status`.
 
 **UrbIS / Brusselse ruimtelijke overlays:** Geopunt-verrijking (watertoets,
 natura-2000, erfgoed) is Vlaams en is **niet van toepassing** op

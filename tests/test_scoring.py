@@ -13,6 +13,7 @@ from debouw.risk.scoring import (
     _severity,
     _sigmoid,
     aggregate,
+    rank,
     top_k,
 )
 
@@ -207,6 +208,23 @@ def test_top_k_respects_k_fewer_than_14():
     factors = [_make_factor(c, 0.5) for c in cats]
     result = top_k(factors, k=5)
     assert len(result) == 3  # fewer than k → return all
+
+
+def test_rank_returns_all_sorted_with_tiebreak():
+    """rank() keeps every factor, ordered by (probability desc, category asc)."""
+    cats = list(RiskCategory)
+    factors = [_make_factor(c, 0.25 * (i % 3)) for i, c in enumerate(cats)]
+    result = rank(factors)
+    assert len(result) == len(cats)
+    keys = [(-f.probability, f.category.value) for f in result]
+    assert keys == sorted(keys)
+
+
+def test_top_k_is_prefix_of_rank():
+    """top_k(factors, k) equals the first k entries of rank(factors)."""
+    cats = list(RiskCategory)
+    factors = [_make_factor(c, i * 0.05) for i, c in enumerate(cats)]
+    assert top_k(factors, k=5) == rank(factors)[:5]
 
 
 def test_scored_factor_is_frozen():

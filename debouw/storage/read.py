@@ -82,6 +82,31 @@ def list_projects(engine: Engine) -> list[dict]:
     return [_hydrate_project(dict(r)) for r in rows]
 
 
+def latest_assessments(engine: Engine) -> dict[str, dict]:
+    """Return the latest risk assessment per project, keyed by external_id.
+
+    One query for the whole dashboard instead of one round-trip per project.
+    "Latest" is deterministic: highest ``generated_at`` wins, with ``rowid``
+    as tiebreak for rows generated at the same instant.
+    """
+    sql = text(
+        "SELECT project_external_id, overall_score, expected_delay_days, "
+        "confidence, summary, top_risks, engine_version, calibration_regime, "
+        "generated_at "
+        "FROM risk_assessments a "
+        "WHERE a.rowid = ("
+        "    SELECT b.rowid FROM risk_assessments b "
+        "    WHERE b.project_external_id = a.project_external_id "
+        "    ORDER BY b.generated_at DESC, b.rowid DESC LIMIT 1"
+        ")"
+    )
+    with engine.connect() as conn:
+        rows = conn.execute(sql).mappings().all()
+    return {
+        r["project_external_id"]: _hydrate_assessment(dict(r)) for r in rows
+    }
+
+
 def get_project_with_assessment(
     engine: Engine, external_id: str
 ) -> tuple[dict | None, dict | None]:
@@ -93,14 +118,15 @@ def get_project_with_assessment(
     proj_sql = text(
         "SELECT external_id, omv_reference, title, address, overlays, status, "
         "first_seen_at, source, description, region, attachments, dossier_pdfs, "
-        "decision_outcome, decision_date, project_type, trees_to_fell "
+        "decision_outcome, decision_date, project_type, trees_to_fell, "
+        "case_language "
         "FROM permit_projects WHERE external_id = :eid"
     )
     asm_sql = text(
         "SELECT project_external_id, overall_score, expected_delay_days, confidence, "
         "summary, top_risks, engine_version, calibration_regime, generated_at "
         "FROM risk_assessments WHERE project_external_id = :eid "
-        "ORDER BY rowid DESC LIMIT 1"
+        "ORDER BY generated_at DESC, rowid DESC LIMIT 1"
     )
     with engine.connect() as conn:
         proj_row = conn.execute(proj_sql, {"eid": external_id}).mappings().first()

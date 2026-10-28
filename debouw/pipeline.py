@@ -7,19 +7,21 @@ intel I1 (Path A): project_external_id is passed explicitly to upsert_inquiry.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import structlog
 
 from debouw.config import Settings
 from debouw.ingest.circuit_breaker import CircuitBreaker
 from debouw.ingest.enrich_geopunt import enrich
-from debouw.ingest.geocode import geocode
+from debouw.ingest.geocode import geocode_with_fallback
 from debouw.ingest.pdf_features import extract_pdf_features
-from debouw.ingest.sources import SchemaDriftError
+from debouw.ingest.sources import DossierVanishedError, SchemaDriftError
 from debouw.ingest.sources.brussels import BrusselsSource
+from debouw.ingest.sources.consultatie import ConsultatieSource, address_geocode_query
 from debouw.ingest.sources.gent import GentSource
 from debouw.ingest.sources.inzageloket import InzageloketSource
+from debouw.ingest.sources.mercator import MercatorSource
 from debouw.risk.engine import RealRiskEngine
 from debouw.storage.db import make_engine, make_sessionmaker
 from debouw.storage.repository import (
@@ -35,8 +37,10 @@ log = structlog.get_logger(__name__)
 
 _SOURCE_REGISTRY = {
     "gent": GentSource,
+    "vlaanderen_consultatie": ConsultatieSource,
     "vlaanderen_inzage": InzageloketSource,
     "brussels": BrusselsSource,
+    "vlaanderen_mercator": MercatorSource,
 }
 
 
@@ -92,6 +96,14 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
 
                 try:
                     project_no_overlay, inquiry = await src.detail_pass(uuid)
+                except DossierVanishedError as exc:
+                    # Withdrawn between index and detail pass — benign skip,
+                    # deliberately NOT a breaker failure (a tenant purging
+                    # expired dossiers must not abort the whole sweep).
+                    log.warning(
+                        "pipeline_dossier_vanished", source=source, error=str(exc)
+                    )
+                    continue
                 except SchemaDriftError as exc:
                     log.error("pipeline_schema_drift", source=source, error=str(exc))
                     breaker.record_failure()
@@ -117,7 +129,19 @@ async def run(source: str, *, limit: int | None = None) -> PipelineResult:
                     )
                     continue
 
-                point = await geocode(project_no_overlay.address.raw, settings)
+                # Prefer the source-provided point (authoritative parcel-geometry
+                # centroid, e.g. Lambert-72 conversions from Brussels/Mercator)
+                # over string geocoding; geocode only when the source had no
+                # geometry. Geocoding uses the parsed primary address (falls
+                # back to the raw locatie string when components are missing)
+                # — Vlaanderen geolocation first, Nominatim second; raw
+                # multi-street strings like "Lange Nieuwstraat 64-68,
+                # Eikenstraat 2 te 2000 Antwerpen" miss on Nominatim as-is.
+                point = project_no_overlay.address.point
+                if point is None:
+                    point = await geocode_with_fallback(
+                        address_geocode_query(project_no_overlay.address), settings
+                    )
                 overlays = await enrich(point, settings)
 
                 # Extract features from cached PDFs (post-enrich, for latency)

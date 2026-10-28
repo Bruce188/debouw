@@ -247,3 +247,144 @@ async def test_default_region_is_vl(
 
     assert fetched is not None
     assert fetched.region == "vl"
+
+
+# ---------------------------------------------------------------------------
+# Sync read seam (debouw/storage/read.py): latest assessment per project
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def read_engine(tmp_path: Path):
+    """Sync engine over a fresh file DB with the full schema materialized."""
+    from sqlalchemy import create_engine
+
+    from debouw.storage.schema import Base
+
+    engine = create_engine(f"sqlite:///{tmp_path}/read.sqlite", future=True)
+    Base.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+def _insert_project(conn, external_id: str) -> None:
+    from sqlalchemy import text
+
+    conn.execute(
+        text(
+            "INSERT INTO permit_projects (external_id, source, region, "
+            "omv_reference, detail_url, title, address, status, attachments, "
+            "dossier_pdfs, raw_html_path, first_seen_at, last_changed_at, "
+            "content_hash, decision_regime) "
+            "VALUES (:eid, 'gent_consultatie', 'vl', :eid, "
+            "'https://example.test/dossier', 'Read-seam project', "
+            "'{\"municipality\": \"Gent\"}', 'intake', '[]', '[]', "
+            "'/tmp/read.html', '2026-04-01 10:00:00', '2026-04-01 10:00:00', "
+            ":hash, 'post_2026_reform')"
+        ),
+        {"eid": external_id, "hash": "c" * 64},
+    )
+
+
+def _insert_assessment(
+    conn, eid: str, engine_version: str, score: float, generated_at: str
+) -> None:
+    from sqlalchemy import text
+
+    conn.execute(
+        text(
+            "INSERT INTO risk_assessments (project_external_id, engine_version, "
+            "overall_score, expected_delay_days, confidence, summary, top_risks, "
+            "calibration_regime, generated_at, inputs_hash) "
+            "VALUES (:eid, :ver, :score, 30.0, 0.5, 'samenvatting', "
+            "'[{\"category\": \"mer_screening\"}]', 'post_2026_reform', "
+            ":gen, :hash)"
+        ),
+        {
+            "eid": eid,
+            "ver": engine_version,
+            "score": score,
+            "gen": generated_at,
+            "hash": "d" * 64,
+        },
+    )
+
+
+def test_latest_assessments_picks_max_generated_at(read_engine) -> None:
+    """latest_assessments returns max(generated_at) regardless of rowid order."""
+    from debouw.storage.read import latest_assessments
+
+    with read_engine.begin() as conn:
+        _insert_project(conn, "gent:OMV_READ_1")
+        # Newer assessment inserted FIRST: rowid order alone would pick the
+        # older row; generated_at DESC must pick this one.
+        _insert_assessment(
+            conn, "gent:OMV_READ_1", "0.2.0", 0.9, "2026-04-05 12:00:00"
+        )
+        _insert_assessment(
+            conn, "gent:OMV_READ_1", "0.1.0", 0.1, "2026-04-01 12:00:00"
+        )
+
+    result = latest_assessments(read_engine)
+    assert set(result) == {"gent:OMV_READ_1"}
+    assert result["gent:OMV_READ_1"]["overall_score"] == 0.9
+    assert result["gent:OMV_READ_1"]["engine_version"] == "0.2.0"
+    # JSON column hydrated to a native list
+    assert isinstance(result["gent:OMV_READ_1"]["top_risks"], list)
+
+
+def test_latest_assessments_rowid_tiebreak(read_engine) -> None:
+    """Equal generated_at → the later-inserted row (higher rowid) wins."""
+    from debouw.storage.read import latest_assessments
+
+    with read_engine.begin() as conn:
+        _insert_project(conn, "gent:OMV_READ_2")
+        _insert_assessment(
+            conn, "gent:OMV_READ_2", "0.1.0", 0.1, "2026-04-05 12:00:00"
+        )
+        _insert_assessment(
+            conn, "gent:OMV_READ_2", "0.2.0", 0.9, "2026-04-05 12:00:00"
+        )
+
+    result = latest_assessments(read_engine)
+    assert result["gent:OMV_READ_2"]["engine_version"] == "0.2.0"
+    assert result["gent:OMV_READ_2"]["overall_score"] == 0.9
+
+
+def test_latest_assessments_one_row_per_project(read_engine) -> None:
+    """Two projects with multiple assessments each → exactly two entries."""
+    from debouw.storage.read import latest_assessments
+
+    with read_engine.begin() as conn:
+        for eid in ("gent:OMV_READ_3", "gent:OMV_READ_4"):
+            _insert_project(conn, eid)
+            _insert_assessment(conn, eid, "0.1.0", 0.2, "2026-04-01 12:00:00")
+            _insert_assessment(conn, eid, "0.2.0", 0.6, "2026-04-05 12:00:00")
+
+    result = latest_assessments(read_engine)
+    assert len(result) == 2
+    assert all(r["overall_score"] == 0.6 for r in result.values())
+
+
+def test_get_project_with_assessment_prefers_newest_generated_at(
+    read_engine,
+) -> None:
+    """The per-project read orders by generated_at DESC, rowid as tiebreak."""
+    from debouw.storage.read import get_project_with_assessment
+
+    with read_engine.begin() as conn:
+        _insert_project(conn, "gent:OMV_READ_5")
+        _insert_assessment(
+            conn, "gent:OMV_READ_5", "0.2.0", 0.9, "2026-04-05 12:00:00"
+        )
+        _insert_assessment(
+            conn, "gent:OMV_READ_5", "0.1.0", 0.1, "2026-04-01 12:00:00"
+        )
+
+    project, assessment = get_project_with_assessment(
+        read_engine, "gent:OMV_READ_5"
+    )
+    assert project is not None
+    assert assessment is not None
+    assert assessment["overall_score"] == 0.9
+    assert assessment["engine_version"] == "0.2.0"

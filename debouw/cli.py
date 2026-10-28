@@ -32,7 +32,10 @@ def status() -> None:
 
 @app.command()
 def ingest(
-    source: str = typer.Option("gent", help="Source name (gent | vlaanderen_inzage | brussels)"),
+    source: str = typer.Option(
+        "gent",
+        help="Source name (gent | vlaanderen_consultatie | vlaanderen_inzage | brussels | vlaanderen_mercator)",
+    ),
     limit: int | None = typer.Option(None, help="Max dossiers to ingest"),
 ) -> None:
     """Ingest permit data from a source."""
@@ -42,6 +45,31 @@ def ingest(
     typer.echo(
         f"ingested {result.ingested} projects, {result.overlays} overlays, "
         f"{result.assessments} assessments"
+    )
+
+
+@app.command(name="discover-tenants")
+def discover_tenants_cmd(
+    limit: int | None = typer.Option(
+        None, help="Probe only the first N municipalities (None = all ~285)"
+    ),
+) -> None:
+    """Probe Flemish municipalities for live consultatieomgeving.net tenants.
+
+    Enumerates municipalities from api.basisregisters.vlaanderen.be, probes
+    https://<slug>.consultatieomgeving.net at 1 req/2 s with the identified
+    User-Agent, and persists the live tenant list as JSON under data/.
+    The `vlaanderen_consultatie` ingest source merges this list with the
+    seed tenants in config. Full sweep takes ~10 minutes.
+    """
+    import asyncio
+    from debouw.ingest.sources.consultatie import discover_tenants, tenants_file_path
+
+    settings = Settings()
+    configure_logging(settings)
+    tenants = asyncio.run(discover_tenants(settings, limit=limit))
+    typer.echo(
+        f"discovered {len(tenants)} live tenants -> {tenants_file_path(settings)}"
     )
 
 
@@ -59,10 +87,122 @@ def classify(
     typer.echo(f"classified {n} projects")
 
 
+_EXPORT_COLUMNS = [
+    "external_id",
+    "source",
+    "region",
+    "municipality",
+    "status",
+    "overall_score",
+    "expected_delay_days",
+    "confidence",
+    "engine_version",
+    "n_risk_factors",
+    "top_risk_category",
+    "first_seen_at",
+]
+
+
 @app.command()
-def export(format: str = typer.Option("json"), output: str | None = typer.Option(None)) -> None:
-    """Export permit data."""
-    typer.echo("Not yet implemented in Phase 0; see master plan § Phase 1 (CLI surface)")
+def export(
+    format: str = typer.Option("csv", help="Output format (csv | json)"),
+    out: Path | None = typer.Option(
+        None, "--out", help="Output path (default: ./export-YYYYMMDD.<format>)"
+    ),
+    min_score: float | None = typer.Option(
+        None, help="Only include projects whose latest overall_score >= this value"
+    ),
+) -> None:
+    """Export the portfolio: one row per project with its latest risk assessment.
+
+    Uses the synchronous read seam (debouw/storage/read.py) — SQLite WAL mode
+    permits this reader to run safely alongside a concurrent writer.
+    """
+    import csv
+    import json
+    from datetime import date as _date
+
+    from debouw.storage.read import latest_assessments, list_projects, make_sync_engine
+
+    fmt = format.lower()
+    if fmt not in ("csv", "json"):
+        raise typer.BadParameter("must be 'csv' or 'json'", param_hint="--format")
+
+    settings = Settings()
+    configure_logging(settings)
+
+    engine = make_sync_engine(settings)
+    try:
+        projects = list_projects(engine)
+        assessments = latest_assessments(engine)
+    finally:
+        engine.dispose()
+
+    rows: list[dict] = []
+    for p in projects:
+        a = assessments.get(p["external_id"])
+        if min_score is not None and (a is None or a["overall_score"] < min_score):
+            continue
+        address = p.get("address")
+        if not isinstance(address, dict):
+            address = {}
+        top_risks = (a or {}).get("top_risks")
+        if not isinstance(top_risks, list):
+            top_risks = []
+        rows.append(
+            {
+                "external_id": p["external_id"],
+                "source": p["source"],
+                "region": p["region"],
+                "municipality": address.get("municipality"),
+                "status": p["status"],
+                "overall_score": a["overall_score"] if a else None,
+                "expected_delay_days": a["expected_delay_days"] if a else None,
+                "confidence": a["confidence"] if a else None,
+                "engine_version": a["engine_version"] if a else None,
+                "n_risk_factors": len(top_risks) if a else None,
+                "top_risk_category": (
+                    top_risks[0].get("category")
+                    if top_risks and isinstance(top_risks[0], dict)
+                    else None
+                ),
+                "first_seen_at": (
+                    str(p["first_seen_at"]) if p["first_seen_at"] is not None else None
+                ),
+            }
+        )
+
+    if not rows:
+        if min_score is not None:
+            typer.echo(
+                f"no projects with overall_score >= {min_score} — nothing to export"
+            )
+        else:
+            typer.echo("no projects in database — nothing to export")
+        return
+
+    # Portfolio view: highest-risk first; unassessed projects last.
+    rows.sort(
+        key=lambda r: (
+            r["overall_score"] is not None,
+            r["overall_score"] or 0.0,
+            r["first_seen_at"] or "",
+        ),
+        reverse=True,
+    )
+
+    out_path = out if out is not None else Path(f"export-{_date.today():%Y%m%d}.{fmt}")
+    if fmt == "csv":
+        with out_path.open("w", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=_EXPORT_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+    else:
+        with out_path.open("w", encoding="utf-8") as fh:
+            json.dump(rows, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+
+    typer.echo(f"exported {len(rows)} rows to {out_path}")
 
 
 @app.command()
@@ -150,6 +290,10 @@ def reparse_brussels() -> None:
                             "mer_status": parsed["mer_status"] or existing.mer_status,
                             "case_language": parsed["case_language"],
                             "description": parsed["description"] or existing.description,
+                            "units": parsed["units"] if parsed["units"] is not None else existing.units,
+                            "floors": parsed["floors"] if parsed["floors"] is not None else existing.floors,
+                            "iioa_class": parsed["iioa_class"] if parsed["iioa_class"] is not None else existing.iioa_class,
+                            "trees_to_fell": parsed["trees_to_fell"] if parsed["trees_to_fell"] is not None else existing.trees_to_fell,
                         })
                         await upsert_project(s, updated)
                         count += 1
@@ -159,6 +303,112 @@ def reparse_brussels() -> None:
 
     n = asyncio.run(_run())
     typer.echo(f"reparse-brussels: touched {n} rows")
+
+
+@app.command(name="reparse-gent")
+def reparse_gent() -> None:
+    """Re-parse Gent address strings, geocode them, and recompute overlays.
+
+    Recipe:
+        debouw reparse-gent && debouw classify --reclassify-all
+
+    Selects all permit_projects rows where source='gent_consultatie',
+    re-parses Address components from the stored raw locatie string
+    (parse_gent_address), geocodes the primary street address via the
+    Vlaanderen geolocation API with a Nominatim fallback, recomputes the
+    Geopunt overlays from the new point, and upserts the updated row.
+    Echoes per-row parsed components, the point, and overlay field changes.
+    """
+    import asyncio
+
+    from sqlalchemy import select
+
+    from debouw.ingest.enrich_geopunt import enrich
+    from debouw.ingest.geocode import geocode_with_fallback
+    from debouw.ingest.sources.gent import address_geocode_query, parse_gent_address
+    from debouw.models.permit import GeoOverlays
+    from debouw.storage.db import make_engine, make_sessionmaker
+    from debouw.storage.repository import get_project, upsert_project
+    from debouw.storage.schema import PermitProjectRow
+
+    settings = Settings()
+    configure_logging(settings)
+
+    _OVERLAY_FIELDS = (
+        "in_natura_2000",
+        "natura_2000_distance_m",
+        "in_signaalgebied",
+        "flood_risk_fluvial",
+        "flood_risk_pluvial",
+        "in_protected_heritage",
+        "heritage_match_distance_m",
+    )
+
+    async def _run() -> int:
+        engine = make_engine(settings)
+        Session = make_sessionmaker(engine)
+        count = 0
+        try:
+            async with Session() as s:
+                result = await s.execute(
+                    select(PermitProjectRow.external_id).where(
+                        PermitProjectRow.source == "gent_consultatie"
+                    )
+                )
+                external_ids = [r[0] for r in result.all()]
+
+            for external_id in external_ids:
+                async with Session() as s:
+                    async with s.begin():
+                        existing = await get_project(s, external_id)
+                if existing is None:
+                    continue
+
+                parsed = parse_gent_address(existing.address.raw)
+                query = address_geocode_query(parsed)
+                point = (
+                    await geocode_with_fallback(query, settings) if query else None
+                )
+                if point is None and query:
+                    typer.echo(
+                        f"warn: geocode failed {external_id} — q={query!r}", err=True
+                    )
+
+                overlays = await enrich(point, settings)
+                old_overlays = existing.overlays or GeoOverlays()
+                changed = [
+                    f"{f}: {getattr(old_overlays, f)!r} -> {getattr(overlays, f)!r}"
+                    for f in _OVERLAY_FIELDS
+                    if getattr(old_overlays, f) != getattr(overlays, f)
+                ]
+
+                updated = existing.model_copy(
+                    update={
+                        "address": parsed.model_copy(update={"point": point}),
+                        "overlays": overlays,
+                    }
+                )
+                async with Session() as s:
+                    async with s.begin():
+                        await upsert_project(s, updated)
+                count += 1
+                point_str = (
+                    f"({point.lat:.5f}, {point.lon:.5f})" if point else "None"
+                )
+                typer.echo(
+                    f"{external_id}: street={parsed.street!r} "
+                    f"hn={parsed.house_number!r} pc={parsed.postcode} "
+                    f"muni={parsed.municipality!r} point={point_str}"
+                )
+                typer.echo(
+                    "  overlays changed: " + ("; ".join(changed) if changed else "(none)")
+                )
+        finally:
+            await engine.dispose()
+        return count
+
+    n = asyncio.run(_run())
+    typer.echo(f"reparse-gent: touched {n} rows")
 
 
 @app.command(name="eval")

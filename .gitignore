@@ -1,14 +1,13 @@
 # Application data — local artifacts only, regenerable
-data/raw/
-data/cache/
+data/
+*.db
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
 
-# LanceDB column files (engine-only writes; preserve directory but exclude segments)
-lancedb/*.lance
-lancedb/**/*.lance
+# LanceDB vector store (engine-only writes; runtime state)
+lancedb/
 
 # Secrets
 .env
@@ -36,4 +35,4 @@ node_modules/
 # Transient model caches (HuggingFace ONNX, sentence-transformers, etc.)
 # Local engine vector store stays gitignored separately above; this is for
 # tool-driven semantic-embedding caches that may be pulled at runtime.
-models/
+/models/

@@ -37,7 +37,7 @@ uv run debouw status
 ```bash
 uv run debouw ingest --source gent --limit 50
 uv run debouw classify
-uv run debouw export --format json --output data/out.json   # stub, not yet implemented
+uv run debouw export --format json --out data/out.json
 uv run debouw serve --port 8501          # Streamlit dashboard
 uv run debouw backfill-rvvb
 uv run debouw reparse-brussels
