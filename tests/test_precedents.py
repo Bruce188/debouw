@@ -213,24 +213,32 @@ def test_search_deterministic(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_search_respects_threshold(tmp_path):
-    """Threshold near 1.0 filters out all but the exact-match vector."""
+    """
+    Threshold near 1.0 filters out all but the exact-match vector.
+
+    arrest_ids must match the validated ``RVVB.X.YYYY.NNNN`` format —
+    upsert_arrest silently rejects anything else, which would leave the
+    table empty and never exercise the threshold filter.
+    """
     s = _settings(tmp_path)
     store = LanceDBPrecedentStore(s)
     store.open_or_create_table()
+    exact_id = "RVVB.A.2425.0100"
+    orthogonal_id = "RVVB.A.2425.0101"
     store.upsert_arrest(
-        _make_extraction("exact", grounds=[RiskCategory.WATER_FLOOD]),
+        _make_extraction(exact_id, grounds=[RiskCategory.WATER_FLOOD]),
         _unit_vector(1),
     )
     store.upsert_arrest(
-        _make_extraction("orthogonal", grounds=[RiskCategory.WATER_FLOOD]),
+        _make_extraction(orthogonal_id, grounds=[RiskCategory.WATER_FLOOD]),
         _unit_vector(2),
     )
     hits = store.search(
         RiskCategory.WATER_FLOOD, _unit_vector(1), threshold=0.99
     )
     ids = {h.arrest_id for h in hits}
-    assert "exact" in ids
-    assert "orthogonal" not in ids
+    assert exact_id in ids
+    assert orthogonal_id not in ids
 
 
 # ---------------------------------------------------------------------------
